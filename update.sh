@@ -42,11 +42,26 @@ fi
 log "Bajando las imágenes nuevas de Lavalink, yt-cipher y spotify-tokener..."
 docker compose pull --ignore-buildable
 
-log "Reconstruyendo el bot y reiniciando lo que cambió..."
-docker compose up -d --build --remove-orphans
+log "Reconstruyendo el bot y reiniciando lo que cambió (si se reinicia Lavalink, el bot espera a que responda)..."
+docker compose up -d --build --remove-orphans || fail "falló docker compose up. Revisá: docker compose logs lavalink discord-bot"
 
 # Las imágenes viejas del bot quedan sin etiqueta después de cada build y ocupan espacio
 docker image prune -f >/dev/null
 
 docker compose ps
-log "Listo: corriendo v$(version). Para ver el arranque: docker compose logs -f discord-bot"
+
+# "Started" no garantiza que el bot ande: un token mal puesto lo deja reiniciándose. Se espera el aviso de Discord
+log "Esperando a que el bot se conecte a Discord..."
+bot=$(docker compose ps -q discord-bot)
+[ -n "$bot" ] || fail "no se encontró el contenedor del bot. Revisá: docker compose logs discord-bot"
+started=$(docker inspect -f '{{.State.StartedAt}}' "$bot")
+restarts=$(docker inspect -f '{{.RestartCount}}' "$bot")
+waited=0
+until docker logs --since "$started" "$bot" 2>&1 | grep -q " Online"; do
+    [ "$(docker inspect -f '{{.RestartCount}}' "$bot")" = "$restarts" ] \
+        || fail "el bot se reinició al arrancar. Revisá: docker compose logs discord-bot"
+    [ "$waited" -lt 90 ] || fail "el bot no se conectó a Discord en 90 s. Revisá: docker compose logs discord-bot"
+    sleep 3
+    waited=$((waited + 3))
+done
+log "Listo: v$(version) en línea. Para seguir el log: docker compose logs -f discord-bot"

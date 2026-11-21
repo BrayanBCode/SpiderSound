@@ -112,7 +112,7 @@ El script baja la última versión del repo (`git pull`), las imágenes nuevas d
 
 ### Desarrollo sin Docker (opcional)
 
-Con [Bun](https://bun.sh) 1.4+ instalado: `bun install`, levantar solo Lavalink con `docker compose up -d lavalink` (en el `.env`, `lavalinkHost="localhost"`) y correr el bot con `bun start`. Bun lee el `.env` solo y ejecuta TypeScript directo, sin compilar. Para revisar tipos: `bun run typecheck`; para los tests: `bun test`.
+Con [Bun](https://bun.sh) 1.4+ instalado: `bun install`, levantar solo Lavalink con `docker compose up -d lavalink` (en el `.env`, `lavalinkHost="localhost"`) y correr el bot con `bun start`. Bun lee el `.env` solo y ejecuta TypeScript directo, sin compilar. Para revisar tipos: `bun run typecheck`; para los tests: `bun test`. Algunas dependencias llevan parches propios (`bun patch`): antes de actualizarlas, ver [`docs/PARCHES.md`](docs/PARCHES.md).
 
 ### Token de YouTube (OAuth)
 

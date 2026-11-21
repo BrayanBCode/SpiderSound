@@ -87,7 +87,7 @@ En el [Developer Portal](https://discord.com/developers/applications) creá una 
    docker compose up --build -d
    ```
 
-   Levanta cuatro contenedores: `yt-cipher` (descifrado de YouTube), `spotify-tokener` (token de Spotify para álbumes, playlists y artistas), `lavalink` (audio) y `discord-bot`. Después de cambiar el código, el mismo comando reconstruye la imagen del bot.
+   Levanta cuatro contenedores: `yt-cipher` (descifrado de YouTube), `spotify-tokener` (token de Spotify para álbumes, playlists y artistas), `lavalink` (audio) y `discord-bot`. El bot espera a que Lavalink responda (healthcheck) antes de arrancar. Después de cambiar el código, el mismo comando reconstruye la imagen del bot.
 
    Los slash commands se registran solos cada vez que el bot arranca.
 
@@ -104,7 +104,7 @@ En la carpeta del proyecto:
 update.bat       # Windows (o doble clic)
 ```
 
-El script baja la última versión del repo (`git pull`), las imágenes nuevas de Lavalink, yt-cipher y spotify-tokener, reconstruye el bot y reinicia solo lo que cambió. Al final muestra la versión en marcha y borra las imágenes viejas del bot. No toca `.env`, `application.yml` ni `data/`.
+El script baja la última versión del repo (`git pull`), las imágenes nuevas de Lavalink, yt-cipher y spotify-tokener, reconstruye el bot y reinicia solo lo que cambió. Borra las imágenes viejas del bot y al final espera a que el bot se conecte a Discord (hasta 90 s): si no lo logra o se reinicia solo, avisa y muestra dónde mirar. No toca `.env`, `application.yml` ni `data/`.
 
 - Si cambiaron `.env.example` o `application.example.yml`, avisa: compará con tus copias por si hay opciones nuevas.
 - Si modificaste archivos del repo, frena antes de actualizar para no pisarlos (guardalos con `git stash`).

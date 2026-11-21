@@ -40,6 +40,15 @@ services:
         depends_on:
             - yt-cipher
             - spotify-tokener
+        # Listo cuando su API responde (sin contraseña contesta 401: alcanza para saber que está arriba).
+        # Al arrancar baja el plugin de YouTube y carga los demás: puede tardar
+        healthcheck:
+            test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:2333/version"]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 120s
+            start_interval: 2s
         # Medido: ~410 MB (434 MB de pico), CPU media 4 % con picos de 42 % al cargar canciones.
         # 1 GB = heap de 512 MB + lo que la JVM usa fuera del heap (hilos, buffers de audio, plugins)
         mem_limit: 1g
@@ -61,7 +70,9 @@ services:
             # Base de datos de favoritos y playlists (bun:sqlite)
             - ./data:/usr/src/app/data
         depends_on:
-            - lavalink # Esto asegura que Lavalink se inicie primero
+            # Espera a que Lavalink responda (healthcheck), no solo a que su contenedor arranque
+            lavalink:
+                condition: service_healthy
         # Medido: ~67 MB (71 de pico), CPU casi 0
         mem_limit: 256m
         cpus: 0.5

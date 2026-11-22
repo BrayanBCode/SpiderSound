@@ -9,6 +9,19 @@ cd /d "%~dp0"
 where git >nul 2>&1 || (call :fail "no se encontró git" & goto :end)
 where docker >nul 2>&1 || (call :fail "no se encontró docker" & goto :end)
 
+rem Bajado como ZIP no hay repo: se explica cómo convertirlo una vez, sin tocar la carpeta sin permiso
+if exist .git goto :has_git
+echo [Update] Esta carpeta no es un clon de git (¿la bajaste como ZIP?): el script necesita git para saber qué versión tenés y bajar la nueva.
+echo [Update] Para convertirla una sola vez, en esta carpeta:
+echo     git init
+echo     git remote add origin https://github.com/BrayanBCode/SpiderSound.git
+echo     git fetch origin main
+echo     git checkout -f -B main --track origin/main
+echo [Update] Eso reemplaza los archivos del proyecto por los de la última versión. Tu .env, application.yml y data/ no se tocan.
+call :fail "carpeta sin git. Convertila como se indica arriba y volvé a correr el script"
+goto :end
+:has_git
+
 rem Con cambios propios en archivos del repo el pull podría pisarlos o fallar a la mitad: mejor frenar antes
 set "DIRTY="
 for /f "delims=" %%l in ('git status --porcelain --untracked-files^=no') do set "DIRTY=1"

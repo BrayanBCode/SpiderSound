@@ -70,6 +70,13 @@ En el [Developer Portal](https://discord.com/developers/applications) creá una 
 
 ### Instalación
 
+Bajá el proyecto con git, no como ZIP: sin git, `update.sh` no puede actualizarlo después.
+
+```bash
+git clone https://github.com/BrayanBCode/SpiderSound.git
+cd SpiderSound
+```
+
 1. **Configuración**
 
    ```bash
@@ -105,6 +112,9 @@ update.bat       # Windows (o doble clic)
 ```
 
 El script baja la última versión del repo (`git pull`), las imágenes nuevas de Lavalink, yt-cipher y spotify-tokener, reconstruye el bot y reinicia solo lo que cambió. Borra las imágenes viejas del bot y al final espera a que el bot se conecte a Discord (hasta 90 s): si no lo logra o se reinicia solo, avisa y muestra dónde mirar. No toca `.env`, `application.yml` ni `data/`.
+
+- Necesita una carpeta clonada con git. Si la bajaste como ZIP, el script frena y muestra los comandos para convertirla una sola vez, sin tocar tu configuración.
+- Si `./update.sh` dice `permission denied`, corré `chmod +x update.sh` una vez (o usá `sh update.sh`).
 
 - Si cambiaron `.env.example` o `application.example.yml`, avisa: compará con tus copias por si hay opciones nuevas.
 - Si modificaste archivos del repo, frena antes de actualizar para no pisarlos (guardalos con `git stash`).

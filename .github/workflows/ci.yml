@@ -1,0 +1,58 @@
+# Verifica cada PR antes del merge: que instale (con el parche de moonlink), compile, pase los tests y arme la imagen Docker.
+# No usa secretos: corre igual en PRs de colaboradores (repo público).
+name: CI
+
+on:
+  pull_request:
+    branches: [Development, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un push nuevo al mismo PR cancela la corrida anterior
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bot:
+    name: Bot (install, typecheck, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Misma versión que la imagen Docker (oven/bun:1.4-slim)
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.x
+
+      # --frozen-lockfile: falla si bun.lock no está al día o si el parche de patches/ no se puede aplicar
+      - name: Instalar dependencias
+        run: bun install --frozen-lockfile
+
+      - name: Revisar tipos
+        run: bun run typecheck
+
+      - name: Tests
+        run: bun test
+
+  docker:
+    name: Imagen Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Solo se arma para comprobar que el Dockerfile funciona; no se publica
+      - name: Construir la imagen del bot
+        run: docker build -t spidersound-ci .
+
+  scripts:
+    name: Scripts de shell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # shellcheck viene instalado en los runners de Ubuntu
+      - name: shellcheck
+        run: shellcheck update.sh lavalink-entrypoint.sh

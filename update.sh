@@ -12,6 +12,18 @@ version() { sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' package.json | head -n 1
 command -v git >/dev/null 2>&1 || fail "no se encontró git"
 command -v docker >/dev/null 2>&1 || fail "no se encontró docker"
 
+# Bajado como ZIP no hay repo: se explica cómo convertirlo una vez, sin tocar la carpeta sin permiso
+if [ ! -e .git ]; then
+    log "Esta carpeta no es un clon de git (¿la bajaste como ZIP?): el script necesita git para saber qué versión tenés y bajar la nueva."
+    log "Para convertirla una sola vez, en esta carpeta:"
+    echo "    git init"
+    echo "    git remote add origin https://github.com/BrayanBCode/SpiderSound.git"
+    echo "    git fetch origin main"
+    echo "    git checkout -f -B main --track origin/main"
+    log "Eso reemplaza los archivos del proyecto por los de la última versión. Tu .env, application.yml y data/ no se tocan."
+    fail "carpeta sin git. Convertila como se indica arriba y volvé a correr el script"
+fi
+
 # Con cambios propios en archivos del repo el pull podría pisarlos o fallar a la mitad: mejor frenar antes
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
     git status --short --untracked-files=no

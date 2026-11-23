@@ -6,6 +6,8 @@
 
 **Araña Sound** es un bot de música para Discord hecho con **Bun**, **discord.js 14**, **moonlink.js 5** y **Lavalink 4**, todo en Docker. Reproduce desde YouTube y Spotify, con una cola interactiva y controles por botones.
 
+🌐 **Web:** [spidersound.netlify.app](https://spidersound.netlify.app): invitación al bot, lista de comandos y guía para autoalojarlo.
+
 > [!NOTE]
 > Proyecto retomado. El plan de trabajo está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

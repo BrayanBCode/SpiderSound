@@ -18,7 +18,7 @@ async function add(client: BClient, inter: ChatInputCommandInteraction<"cached">
     const [track] = resolved.tracks
 
     const title = titleCleaner(track.title, track.author)
-    if (!client.db.addFavorite(inter.user.id, track)) return editReplyEmbed(inter, `**${title}** ya estaba en tus favoritos.`, "Yellow")
+    if (!await client.db.addFavorite(inter.user.id, track)) return editReplyEmbed(inter, `**${title}** ya estaba en tus favoritos.`, "Yellow")
 
     logger.info(`[Favoritos] ${inter.user.username} agregó "${track.title}" (${track.uri}) desde /favoritos agregar en ${inter.guild.name}`)
     return editReplyEmbed(inter, `❤️ **${title}** se agregó a tus favoritos.`, "Green")
@@ -29,7 +29,7 @@ async function play(client: BClient, inter: ChatInputCommandInteraction<"cached"
     const VCID = await voiceChannelFor(client, inter)
     if (!VCID) return
 
-    const favorites = client.db.getFavorites(inter.user.id)
+    const favorites = await client.db.getFavorites(inter.user.id)
     if (!favorites.length) return replyEmbed({ interaction: inter, embed: noFavorites, ephemeral: true })
 
     const amount = inter.options.getInteger("cantidad") ?? MAX_LOAD
@@ -57,16 +57,16 @@ async function play(client: BClient, inter: ChatInputCommandInteraction<"cached"
 /** /favoritos ver: lista paginada, solo para quien la pide, con un menú para quitar canciones */
 async function view(client: BClient, inter: ChatInputCommandInteraction<"cached">) {
     // Momento en que se agregó: identifica la canción aunque la lista cambie desde otra ventana
-    const load = () => client.db.getFavorites(inter.user.id).map(fav => ({ ...fav, key: String(fav.addedAt) }))
-    if (!load().length) return replyEmbed({ interaction: inter, embed: noFavorites, ephemeral: true })
+    const load = async () => (await client.db.getFavorites(inter.user.id)).map(fav => ({ ...fav, key: String(fav.addedAt) }))
+    if (!(await load()).length) return replyEmbed({ interaction: inter, embed: noFavorites, ephemeral: true })
 
     return showSavedList(inter, {
         title: `Favoritos de ${inter.member.displayName} ❤️`,
         idPrefix: "fav",
         hint: "/favoritos play para escucharlos",
         load,
-        remove: fav => {
-            if (client.db.removeFavorite(inter.user.id, fav.uri))
+        remove: async fav => {
+            if (await client.db.removeFavorite(inter.user.id, fav.uri))
                 logger.info(`[Favoritos] ${inter.user.username} quitó "${fav.title}" (${fav.uri}) desde /favoritos ver`)
         },
     })

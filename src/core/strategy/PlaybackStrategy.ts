@@ -113,7 +113,7 @@ export abstract class PlaybackStrategy {
                 return this.editReplyAndDelete(inter, EmptyEmbed({ description: spotifyType ? SPOTIFY_COLLECTION_MSG : "No se encontraron resultados" }).setColor("Red"));
             }
 
-            const player = client.getPlayerOrDefault(inter, GuildID);
+            const player = await client.getPlayerOrDefault(inter, GuildID);
             if (!player.connected) {
                 if (player.voiceChannelId !== VCID) player.setVoiceChannelId(VCID);
                 await player.connect({ selfDeaf: true, selfMute: false });

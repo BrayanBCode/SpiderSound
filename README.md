@@ -102,7 +102,29 @@ cd SpiderSound
 
    Los favoritos y las playlists se guardan en `data/bot.db` (SQLite), en la carpeta `data/` del proyecto. Si movés el bot a otra PC, copiá esa carpeta.
 
+   Si el bot corre en más de una PC (por turnos), los favoritos pueden vivir en una base compartida: ver [Base de datos compartida](#base-de-datos-compartida-opcional).
+
    Opcional: con `DEV_GUILD_ID` en el `.env` (ID de tu servidor), el bot crea ahí `#notificaciones-bot` y avisa arranques, servidores nuevos o perdidos, errores no controlados y caídas de Lavalink. El canal es privado: solo lo ven el dueño del bot (`ownerID`) y los administradores. Necesita el permiso Gestionar canales.
+
+### Base de datos compartida (opcional)
+
+Por defecto cada instalación guarda favoritos, playlists y el volumen por servidor en su propio `data/bot.db`. Si el bot corre en más de una PC, cada una tendría datos distintos. Para que compartan los mismos, se usa una base Postgres en internet, por ejemplo [Supabase](https://supabase.com/dashboard) (tiene plan gratis):
+
+1. Creá un proyecto. Elegí la región más cercana a las PCs del bot (para Argentina, São Paulo) y guardá la contraseña de la base.
+2. En el proyecto: **Connect** → **Session pooler** → copiá la URI. Usá el *Session pooler* (no *Direct connection*, que solo anda con IPv6, ni *Transaction pooler*, que no admite las consultas preparadas que usa el bot).
+3. Reemplazá `[YOUR-PASSWORD]` por la contraseña y pegala en el `.env` de **cada** PC:
+   ```env
+   DATABASE_URL="postgresql://postgres.xxxx:tu-contraseña@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+   ```
+   La conexión va cifrada (TLS) solo. Es una contraseña: no la subas al repo ni la pegues en chats.
+4. Si ya tenías datos, pasalos una vez (se pueden juntar varios `bot.db` y no se duplica nada):
+   ```bash
+   docker compose run --rm discord-bot bun src/scripts/migrarDb.ts data/bot.db data/bot-otra-pc.db
+   ```
+   Los archivos que pases tienen que estar dentro de `data/`. No se borran: guardalos como copia.
+5. `docker compose up --build -d`. En el log aparece `[DB] Base lista: Postgres (...)`.
+
+En el plan gratis, Supabase pausa la base si pasa una semana sin uso (avisa por mail antes). Mientras está pausada la música anda, pero favoritos y playlists dan error: se reactiva desde el panel.
 
 ### Actualizar
 

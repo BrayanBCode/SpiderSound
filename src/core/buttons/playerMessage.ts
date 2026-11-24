@@ -432,7 +432,7 @@ export class PlayerMessage {
                     const title = titleCleaner(track.title, track.author)
                     let result: "added" | "removed"
                     try {
-                        result = client.db.toggleFavorite(inter.user.id, {
+                        result = await client.db.toggleFavorite(inter.user.id, {
                             uri: track.uri,
                             title: track.title,
                             author: track.author,

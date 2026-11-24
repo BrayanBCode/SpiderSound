@@ -9,6 +9,19 @@ cd /d "%~dp0"
 where git >nul 2>&1 || (call :fail "no se encontró git" & goto :end)
 where docker >nul 2>&1 || (call :fail "no se encontró docker" & goto :end)
 
+rem Bajado como ZIP no hay repo: se explica cómo convertirlo una vez, sin tocar la carpeta sin permiso
+if exist .git goto :has_git
+echo [Update] Esta carpeta no es un clon de git (¿la bajaste como ZIP?): el script necesita git para saber qué versión tenés y bajar la nueva.
+echo [Update] Para convertirla una sola vez, en esta carpeta:
+echo     git init
+echo     git remote add origin https://github.com/BrayanBCode/SpiderSound.git
+echo     git fetch origin main
+echo     git checkout -f -B main --track origin/main
+echo [Update] Eso reemplaza los archivos del proyecto por los de la última versión. Tu .env, application.yml y data/ no se tocan.
+call :fail "carpeta sin git. Convertila como se indica arriba y volvé a correr el script"
+goto :end
+:has_git
+
 rem Con cambios propios en archivos del repo el pull podría pisarlos o fallar a la mitad: mejor frenar antes
 set "DIRTY="
 for /f "delims=" %%l in ('git status --porcelain --untracked-files^=no') do set "DIRTY=1"
@@ -45,14 +58,34 @@ if "%OLD_COMMIT%"=="%NEW_COMMIT%" (
 echo [Update] Bajando las imágenes nuevas de Lavalink, yt-cipher y spotify-tokener...
 docker compose pull --ignore-buildable || (call :fail "falló docker compose pull" & goto :end)
 
-echo [Update] Reconstruyendo el bot y reiniciando lo que cambió...
-docker compose up -d --build --remove-orphans || (call :fail "falló docker compose up" & goto :end)
+echo [Update] Reconstruyendo el bot y reiniciando lo que cambió, si se reinicia Lavalink el bot espera a que responda...
+docker compose up -d --build --remove-orphans || (call :fail "falló docker compose up. Revisá: docker compose logs lavalink discord-bot" & goto :end)
 
 rem Las imágenes viejas del bot quedan sin etiqueta después de cada build y ocupan espacio
 docker image prune -f >nul
 
 docker compose ps
-echo [Update] Listo: corriendo v%NEW_VERSION%. Para ver el arranque: docker compose logs -f discord-bot
+
+rem "Started" no garantiza que el bot ande: un token mal puesto lo deja reiniciándose. Se espera el aviso de Discord
+echo [Update] Esperando a que el bot se conecte a Discord...
+set "BOT="
+for /f "usebackq delims=" %%i in (`docker compose ps -q discord-bot`) do set "BOT=%%i"
+if not defined BOT (call :fail "no se encontró el contenedor del bot. Revisá: docker compose logs discord-bot" & goto :end)
+for /f "usebackq delims=" %%s in (`docker inspect -f "{{.State.StartedAt}}" %BOT%`) do set "STARTED=%%s"
+for /f "usebackq delims=" %%r in (`docker inspect -f "{{.RestartCount}}" %BOT%`) do set "RESTARTS=%%r"
+set /a WAITED=0
+:wait_online
+docker logs --since %STARTED% %BOT% 2>&1 | findstr /c:" Online" >nul && goto :online
+for /f "usebackq delims=" %%r in (`docker inspect -f "{{.RestartCount}}" %BOT%`) do set "NOW_RESTARTS=%%r"
+if not "%NOW_RESTARTS%"=="%RESTARTS%" (call :fail "el bot se reinició al arrancar. Revisá: docker compose logs discord-bot" & goto :end)
+if %WAITED% GEQ 90 (call :fail "el bot no se conectó a Discord en 90 s. Revisá: docker compose logs discord-bot" & goto :end)
+rem ping como pausa de 3 s: timeout falla si la entrada no es una consola
+ping -n 4 127.0.0.1 >nul
+set /a WAITED+=3
+goto :wait_online
+
+:online
+echo [Update] Listo: v%NEW_VERSION% en línea. Para seguir el log: docker compose logs -f discord-bot
 set "EXIT_CODE=0"
 goto :end
 

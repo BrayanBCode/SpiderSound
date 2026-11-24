@@ -19,6 +19,9 @@ const logFormat = printf(({ level, message, timestamp }) => {
     return `[${timestamp}] [${level}] ${message}`;
 });
 
+// Rotación de los archivos: al llegar a 5 MB se pasa al siguiente y se conservan los 3 últimos
+const rotation = { maxsize: 5 * 1024 * 1024, maxFiles: 3, tailable: true };
+
 // Configuración del logger
 const logger = createLogger({
     levels: {
@@ -31,13 +34,13 @@ const logger = createLogger({
     level: "debug", // Cambia a 'info' en producción si quieres menos detalles
     format: combine(
         timestamp({ format: 'DD-MM-YYYY HH:mm' }), // " HH:mm:ss " para incluir segundos
-        colorize({ all: true }),
         logFormat
     ),
     transports: [
-        new transports.Console(), // Imprime en la consola con colores
-        new transports.File({ filename: 'logs/error.log' }), // Guarda errores en un archivo
-        new transports.File({ filename: 'logs/combined.log' }), // Guarda todos los logs
+        // Colores solo en la consola: en los archivos quedarían como códigos ESC[35m...ESC[39m
+        new transports.Console({ format: combine(colorize({ all: true }), logFormat) }),
+        new transports.File({ filename: 'logs/error.log', level: 'error', ...rotation }), // Solo errores
+        new transports.File({ filename: 'logs/combined.log', ...rotation }), // Todos los niveles
     ],
 });
 

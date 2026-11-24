@@ -6,6 +6,8 @@
 
 **Araña Sound** es un bot de música para Discord hecho con **Bun**, **discord.js 14**, **moonlink.js 5** y **Lavalink 4**, todo en Docker. Reproduce desde YouTube y Spotify, con una cola interactiva y controles por botones.
 
+🌐 **Web:** [spidersound.netlify.app](https://spidersound.netlify.app): invitación al bot, lista de comandos y guía para autoalojarlo.
+
 > [!NOTE]
 > Proyecto retomado. El plan de trabajo está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -70,6 +72,13 @@ En el [Developer Portal](https://discord.com/developers/applications) creá una 
 
 ### Instalación
 
+Bajá el proyecto con git, no como ZIP: sin git, `update.sh` no puede actualizarlo después.
+
+```bash
+git clone https://github.com/BrayanBCode/SpiderSound.git
+cd SpiderSound
+```
+
 1. **Configuración**
 
    ```bash
@@ -87,13 +96,35 @@ En el [Developer Portal](https://discord.com/developers/applications) creá una 
    docker compose up --build -d
    ```
 
-   Levanta cuatro contenedores: `yt-cipher` (descifrado de YouTube), `spotify-tokener` (token de Spotify para álbumes, playlists y artistas), `lavalink` (audio) y `discord-bot`. Después de cambiar el código, el mismo comando reconstruye la imagen del bot.
+   Levanta cuatro contenedores: `yt-cipher` (descifrado de YouTube), `spotify-tokener` (token de Spotify para álbumes, playlists y artistas), `lavalink` (audio) y `discord-bot`. El bot espera a que Lavalink responda (healthcheck) antes de arrancar. Después de cambiar el código, el mismo comando reconstruye la imagen del bot.
 
    Los slash commands se registran solos cada vez que el bot arranca.
 
    Los favoritos y las playlists se guardan en `data/bot.db` (SQLite), en la carpeta `data/` del proyecto. Si movés el bot a otra PC, copiá esa carpeta.
 
+   Si el bot corre en más de una PC (por turnos), los favoritos pueden vivir en una base compartida: ver [Base de datos compartida](#base-de-datos-compartida-opcional).
+
    Opcional: con `DEV_GUILD_ID` en el `.env` (ID de tu servidor), el bot crea ahí `#notificaciones-bot` y avisa arranques, servidores nuevos o perdidos, errores no controlados y caídas de Lavalink. El canal es privado: solo lo ven el dueño del bot (`ownerID`) y los administradores. Necesita el permiso Gestionar canales.
+
+### Base de datos compartida (opcional)
+
+Por defecto cada instalación guarda favoritos, playlists y el volumen por servidor en su propio `data/bot.db`. Si el bot corre en más de una PC, cada una tendría datos distintos. Para que compartan los mismos, se usa una base Postgres en internet, por ejemplo [Supabase](https://supabase.com/dashboard) (tiene plan gratis):
+
+1. Creá un proyecto. Elegí la región más cercana a las PCs del bot (para Argentina, São Paulo) y guardá la contraseña de la base.
+2. En el proyecto: **Connect** → **Session pooler** → copiá la URI. Usá el *Session pooler* (no *Direct connection*, que solo anda con IPv6, ni *Transaction pooler*, que no admite las consultas preparadas que usa el bot).
+3. Reemplazá `[YOUR-PASSWORD]` por la contraseña y pegala en el `.env` de **cada** PC:
+   ```env
+   DATABASE_URL="postgresql://postgres.xxxx:tu-contraseña@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+   ```
+   La conexión va cifrada (TLS) solo. Es una contraseña: no la subas al repo ni la pegues en chats.
+4. Si ya tenías datos, pasalos una vez (se pueden juntar varios `bot.db` y no se duplica nada):
+   ```bash
+   docker compose run --rm discord-bot bun src/scripts/migrarDb.ts data/bot.db data/bot-otra-pc.db
+   ```
+   Los archivos que pases tienen que estar dentro de `data/`. No se borran: guardalos como copia.
+5. `docker compose up --build -d`. En el log aparece `[DB] Base lista: Postgres (...)`.
+
+En el plan gratis, Supabase pausa la base si pasa una semana sin uso (avisa por mail antes). Mientras está pausada la música anda, pero favoritos y playlists dan error: se reactiva desde el panel.
 
 ### Actualizar
 
@@ -104,7 +135,10 @@ En la carpeta del proyecto:
 update.bat       # Windows (o doble clic)
 ```
 
-El script baja la última versión del repo (`git pull`), las imágenes nuevas de Lavalink, yt-cipher y spotify-tokener, reconstruye el bot y reinicia solo lo que cambió. Al final muestra la versión en marcha y borra las imágenes viejas del bot. No toca `.env`, `application.yml` ni `data/`.
+El script baja la última versión del repo (`git pull`), las imágenes nuevas de Lavalink, yt-cipher y spotify-tokener, reconstruye el bot y reinicia solo lo que cambió. Borra las imágenes viejas del bot y al final espera a que el bot se conecte a Discord (hasta 90 s): si no lo logra o se reinicia solo, avisa y muestra dónde mirar. No toca `.env`, `application.yml` ni `data/`.
+
+- Necesita una carpeta clonada con git. Si la bajaste como ZIP, el script frena y muestra los comandos para convertirla una sola vez, sin tocar tu configuración.
+- Si `./update.sh` dice `permission denied`, corré `chmod +x update.sh` una vez (o usá `sh update.sh`).
 
 - Si cambiaron `.env.example` o `application.example.yml`, avisa: compará con tus copias por si hay opciones nuevas.
 - Si modificaste archivos del repo, frena antes de actualizar para no pisarlos (guardalos con `git stash`).

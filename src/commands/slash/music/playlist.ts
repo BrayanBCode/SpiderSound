@@ -22,7 +22,7 @@ const replyEphemeral = (inter: Inter, description: string, color: "Green" | "Yel
 /** La playlist elegida en la opción `playlist`. Si no existe (o es de otro), avisa y devuelve `undefined` */
 async function findPlaylist(client: BClient, inter: Inter, deferred = false): Promise<PlaylistSummary | undefined> {
     const name = inter.options.getString("playlist", true).trim()
-    const playlist = client.db.getPlaylist(inter.user.id, name)
+    const playlist = await client.db.getPlaylist(inter.user.id, name)
     if (playlist) return playlist
 
     const msg = `No tenés una playlist llamada **${name}**. Mirá las tuyas con \`/playlist ver\`.`
@@ -33,10 +33,10 @@ async function findPlaylist(client: BClient, inter: Inter, deferred = false): Pr
 async function create(client: BClient, inter: Inter) {
     const name = inter.options.getString("nombre", true).trim()
     if (!name) return replyEphemeral(inter, "El nombre no puede estar vacío.", "Yellow")
-    if (client.db.getPlaylists(inter.user.id).length >= MAX_PLAYLISTS)
+    if ((await client.db.getPlaylists(inter.user.id)).length >= MAX_PLAYLISTS)
         return replyEphemeral(inter, `Ya tenés ${MAX_PLAYLISTS} playlists, que es el máximo. Borrá alguna con \`/playlist borrar\`.`, "Yellow")
 
-    const playlist = client.db.createPlaylist(inter.user.id, name)
+    const playlist = await client.db.createPlaylist(inter.user.id, name)
     if (!playlist) return replyEphemeral(inter, `Ya tenés una playlist llamada **${name}**.`, "Yellow")
 
     logger.info(`[Playlist] ${inter.user.username} creó "${name}" en ${inter.guild.name}`)
@@ -59,7 +59,7 @@ async function add(client: BClient, inter: Inter) {
     if (!resolved.playlistName) {
         const [track] = resolved.tracks
         const title = titleCleaner(track.title, track.author)
-        if (!client.db.addToPlaylist(playlist.id, track)) return editReplyEmbed(inter, `**${title}** ya estaba en **${playlist.name}**.`, "Yellow")
+        if (!await client.db.addToPlaylist(playlist.id, track)) return editReplyEmbed(inter, `**${title}** ya estaba en **${playlist.name}**.`, "Yellow")
 
         logger.info(`[Playlist] ${inter.user.username} agregó "${track.title}" (${track.uri}) a "${playlist.name}" en ${inter.guild.name}`)
         return editReplyEmbed(inter, `➕ **${title}** se agregó a **${playlist.name}** (${playlist.trackCount + 1} canciones).`, "Green")
@@ -69,7 +69,7 @@ async function add(client: BClient, inter: Inter) {
     let added = 0, repeated = 0, free = MAX_TRACKS - playlist.trackCount
     for (const track of resolved.tracks) {
         if (added >= free) break
-        if (client.db.addToPlaylist(playlist.id, track)) added++
+        if (await client.db.addToPlaylist(playlist.id, track)) added++
         else repeated++
     }
     const leftOut = resolved.tracks.length - added - repeated
@@ -92,7 +92,7 @@ async function play(client: BClient, inter: Inter) {
     const playlist = await findPlaylist(client, inter)
     if (!playlist) return
 
-    const saved = client.db.getPlaylistTracks(playlist.id)
+    const saved = await client.db.getPlaylistTracks(playlist.id)
     if (!saved.length) return replyEphemeral(inter, `**${playlist.name}** está vacía. Agregale canciones con \`/playlist agregar\`.`, "Yellow")
 
     const mix = inter.options.getBoolean("mezclar") ?? false
@@ -118,7 +118,7 @@ async function play(client: BClient, inter: Inter) {
 async function view(client: BClient, inter: Inter) {
     // Sin playlist: el resumen de todas
     if (!inter.options.getString("playlist")) {
-        const playlists = client.db.getPlaylists(inter.user.id)
+        const playlists = await client.db.getPlaylists(inter.user.id)
         if (!playlists.length) return replyEphemeral(inter, "Todavía no tenés playlists. Creá una con `/playlist crear`.", "Yellow")
 
         return replyEmbed({
@@ -136,16 +136,16 @@ async function view(client: BClient, inter: Inter) {
     if (!playlist) return
 
     // Posición: identifica la canción aunque la lista cambie desde otra ventana
-    const load = () => client.db.getPlaylistTracks(playlist.id).map(t => ({ ...t, key: String(t.position) }))
-    if (!load().length) return replyEphemeral(inter, `**${playlist.name}** está vacía. Agregale canciones con \`/playlist agregar\`.`, "Yellow")
+    const load = async () => (await client.db.getPlaylistTracks(playlist.id)).map(t => ({ ...t, key: String(t.position) }))
+    if (!(await load()).length) return replyEphemeral(inter, `**${playlist.name}** está vacía. Agregale canciones con \`/playlist agregar\`.`, "Yellow")
 
     return showSavedList(inter, {
         title: `${playlist.name} 📁`,
         idPrefix: "pl",
         hint: "/playlist play para escucharla",
         load,
-        remove: item => {
-            if (client.db.removeFromPlaylist(playlist.id, Number(item.key)))
+        remove: async item => {
+            if (await client.db.removeFromPlaylist(playlist.id, Number(item.key)))
                 logger.info(`[Playlist] ${inter.user.username} quitó "${item.title}" (${item.uri}) de "${playlist.name}"`)
         },
     })
@@ -157,7 +157,7 @@ async function rename(client: BClient, inter: Inter) {
 
     const newName = inter.options.getString("nuevo_nombre", true).trim()
     if (!newName) return replyEphemeral(inter, "El nombre no puede estar vacío.", "Yellow")
-    if (!client.db.renamePlaylist(inter.user.id, playlist.id, newName))
+    if (!await client.db.renamePlaylist(inter.user.id, playlist.id, newName))
         return replyEphemeral(inter, `Ya tenés otra playlist llamada **${newName}**.`, "Yellow")
 
     logger.info(`[Playlist] ${inter.user.username} renombró "${playlist.name}" a "${newName}"`)
@@ -188,7 +188,7 @@ async function remove(client: BClient, inter: Inter) {
         if (answer.customId === "pl-delete-no")
             return answer.update({ embeds: [EmptyEmbed({ description: `Se canceló: **${playlist.name}** sigue igual.` })], components: [] })
 
-        const deleted = client.db.deletePlaylist(inter.user.id, playlist.id)
+        const deleted = await client.db.deletePlaylist(inter.user.id, playlist.id)
         if (deleted) logger.info(`[Playlist] ${inter.user.username} borró "${playlist.name}" (${playlist.trackCount} canciones)`)
         return answer.update({
             embeds: [EmptyEmbed({ description: deleted ? `🗑️ Se borró **${playlist.name}**.` : `**${playlist.name}** ya no existía.` }).setColor(deleted ? "Green" : "Yellow")],
@@ -206,7 +206,7 @@ async function autocomplete(client: BClient, inter: AutocompleteInteraction) {
     if (focused.name === "busqueda") return savedTrackSearch.autocomplete(client, inter)
 
     const text = focused.value.toLowerCase()
-    return inter.respond(client.db.getPlaylists(inter.user.id)
+    return inter.respond((await client.db.getPlaylists(inter.user.id))
         .filter(p => p.name.toLowerCase().includes(text))
         .slice(0, 25)
         .map(p => ({ name: `${p.name} (${p.trackCount} ${p.trackCount === 1 ? "canción" : "canciones"})`.slice(0, 100), value: p.name })))

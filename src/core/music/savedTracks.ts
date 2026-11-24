@@ -98,7 +98,7 @@ export async function queueSavedTracks(client: BClient, inter: ChatInputCommandI
     if (failed.length) logger.warn(`[${inter.commandName}] No se pudieron cargar ${failed.length} canciones de ${inter.user.username}: ${failed.map(f => f.uri).join(", ")}`)
     if (!tracks.length) return { tracks, failed, queueSize: 0 }
 
-    const player = client.getPlayerOrDefault(inter, inter.guildId)
+    const player = await client.getPlayerOrDefault(inter, inter.guildId)
     if (!player.connected) {
         if (player.voiceChannelId !== VCID) player.setVoiceChannelId(VCID)
         await player.connect({ selfDeaf: true, selfMute: false })
@@ -121,9 +121,9 @@ interface SavedListOptions {
     idPrefix: string
     /** Texto del pie, ej. "/favoritos play para escucharlos" */
     hint: string
-    load: () => SavedListItem[]
+    load: () => Promise<SavedListItem[]>
     /** Quita la canción (y deja el log). Se llama con la versión recién leída de la lista */
-    remove: (item: SavedListItem) => void
+    remove: (item: SavedListItem) => Promise<void>
 }
 
 function renderPage(items: SavedListItem[], page: number, opts: SavedListOptions) {
@@ -158,7 +158,7 @@ function renderPage(items: SavedListItem[], page: number, opts: SavedListOptions
 
 /** Lista paginada, solo para quien la pide, con un menú para quitar canciones. La lista no debe estar vacía */
 export async function showSavedList(inter: ChatInputCommandInteraction<"cached">, opts: SavedListOptions) {
-    let items = opts.load()
+    let items = await opts.load()
     let page = 0
     const { resource } = await inter.reply({ ...renderPage(items, page, opts), flags: MessageFlags.Ephemeral, withResponse: true })
     if (!resource?.message) return
@@ -173,9 +173,9 @@ export async function showSavedList(inter: ChatInputCommandInteraction<"cached">
         try {
             if (i.componentType === ComponentType.StringSelect) {
                 // Se busca en la lista recién leída: puede haber cambiado desde otra ventana
-                const item = opts.load().find(it => it.key === i.values[0])
-                if (item) opts.remove(item)
-                items = opts.load()
+                const item = (await opts.load()).find(it => it.key === i.values[0])
+                if (item) await opts.remove(item)
+                items = await opts.load()
             } else if (i.customId.endsWith("-prev")) page--
             else if (i.customId.endsWith("-next")) page++
 

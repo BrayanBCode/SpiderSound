@@ -13,7 +13,7 @@ export default new SlashCommand()
         async (client, inter) => {
             const level = inter.options.getInteger("nivel");
             const asDefault = inter.options.getBoolean("predeterminado") ?? false;
-            const saved = client.db.getGuildVolume(inter.guildId);
+            const saved = await client.db.getGuildVolume(inter.guildId);
 
             // Sin nivel: solo informa (efímero, no molesta al resto)
             if (level === null) {
@@ -34,7 +34,7 @@ export default new SlashCommand()
                     });
                 }
 
-                client.db.setGuildVolume(inter.guildId, level);
+                await client.db.setGuildVolume(inter.guildId, level);
                 logger.info(`[/volume] ${inter.user.username} puso el volumen por defecto en ${level}% (antes ${saved ?? `${DEFAULT_VOLUME} del bot`}) en ${inter.guild.name}`);
 
                 // También ahora, si suena algo y quien lo pide está escuchando (misma regla que el resto de los controles)

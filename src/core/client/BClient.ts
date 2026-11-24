@@ -70,15 +70,23 @@ export class BClient extends Client {
     }
 
 
-    getPlayerOrDefault(inter: ChatInputCommandInteraction<"cached"> | AutocompleteInteraction<CacheType>, guildId: string) {
-        let player = this.music.players.get(guildId) ?? this.music.players.create({
+    async getPlayerOrDefault(inter: ChatInputCommandInteraction<"cached"> | AutocompleteInteraction<CacheType>, guildId: string) {
+        const existing = this.music.players.get(guildId);
+        if (existing) return existing;
+
+        // La base puede estar en otra PC o en internet: si no responde, se toca con el volumen del bot en vez de fallar
+        const saved = await this.db.getGuildVolume(guildId).catch(err => {
+            logger.warn(`[DB] No se pudo leer el volumen guardado de ${guildId}, se usa ${DEFAULT_VOLUME}: ${(err as Error).message}`);
+            return null;
+        });
+
+        // Se vuelve a buscar: mientras se leía la base, otro comando pudo haber creado el player
+        return this.music.players.get(guildId) ?? this.music.players.create({
             guildId,
             textChannelId: inter.channelId ?? undefined,
             voiceChannelId: (inter.member as any).voice.channelId,
-            volume: this.db.getGuildVolume(guildId) ?? DEFAULT_VOLUME,
+            volume: saved ?? DEFAULT_VOLUME,
         });
-
-        return player;
     }
 
     getPlayer(guildId: string) {

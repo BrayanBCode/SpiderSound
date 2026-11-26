@@ -1,12 +1,12 @@
 import logger from "../../../core/client/logger.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import { deleteAfterTimer, EmptyEmbed, replyEmbed } from "../../../utils/messages.js";
 import { requireListener } from "../../../core/music/player.js";
 
 export default new SlashCommand()
     .setName("stop")
-    .setDescription(es.commands.stop)
+    .setDescription(en.commands.stop).setDescriptionLocalizations(esLocales(es.commands.stop))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {

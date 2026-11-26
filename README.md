@@ -51,8 +51,11 @@
 | `/playlist renombrar` · `/playlist borrar` | Cambia el nombre o borra una playlist (pide confirmación) |
 | `/help` | Lista todos los comandos (se arma sola con los comandos cargados) |
 | `/ping` | Muestra la latencia del bot en ms |
+| `/idioma` | Muestra o cambia el idioma del bot en el servidor: español o inglés (cambiarlo requiere Gestionar el servidor) |
 
 Los comandos que controlan la reproducción solo funcionan si estás en el mismo canal de voz que el bot.
+
+**Idioma.** El bot responde en español o en inglés según el servidor. Si nadie lo eligió con `/idioma`, usa el idioma de Discord del servidor: Discord pone inglés a los servidores que no son Comunidad, así que al entrar a un servidor nuevo el bot avisa en los dos idiomas cómo cambiarlo. Los nombres de los comandos se ven en el idioma de Discord de cada usuario: con Discord en inglés, `/favoritos ver` aparece como `/favorites view` y `/idioma` como `/language`.
 
 ---
 

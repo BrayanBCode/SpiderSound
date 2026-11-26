@@ -79,7 +79,7 @@ export abstract class PlaybackStrategy {
         if (!checkUserVC(inter)) return;
 
         const src = "ytsearch";
-        const query = (inter.options as CommandInteractionOptionResolver).getString("busqueda", true);
+        const query = (inter.options as CommandInteractionOptionResolver).getString("search", true);
 
         if (query == queryErrors.NO_RESULTS) return warnNothingFound(inter);
         if (query == queryErrors.JOIN_VC) return warnJoinToVCBut(inter);
@@ -212,7 +212,7 @@ export abstract class PlaybackStrategy {
             const tracks = res.tracks;
             await this.addTracks(player, tracks);
 
-            const query = inter.options.getString("busqueda") ?? "";
+            const query = inter.options.getString("search") ?? "";
             const first = tracks.slice(0, 3).map((track, i) => `**${i + 1}.** ${titleCleaner(track.title, track.author)} · \`${formatMS_HHMMSS(track.duration)}\``);
             if (tracks.length > 3) first.push(t.play.andMore(tracks.length - 3));
 

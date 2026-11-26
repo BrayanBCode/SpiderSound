@@ -1,5 +1,5 @@
 import { ActionRowBuilder, AutocompleteInteraction, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, MessageFlags } from "discord.js"
-import { es, textsFor, type Texts } from "../../../i18n/index.js"
+import { en, es, esLocales, textsFor, type Texts } from "../../../i18n/index.js"
 import { SlashCommand } from "../../../core/classes/SlashCommand.js"
 import { BClient } from "../../../core/client/BClient.js"
 import logger from "../../../core/client/logger.js"
@@ -33,7 +33,7 @@ async function findPlaylist(client: BClient, inter: Inter, t: Texts, deferred = 
 
 async function create(client: BClient, inter: Inter) {
     const t = await textsFor(client, inter.guildId)
-    const name = inter.options.getString("nombre", true).trim()
+    const name = inter.options.getString("name", true).trim()
     if (!name) return replyEphemeral(inter, t.playlist.emptyName, "Yellow")
     if ((await client.db.getPlaylists(inter.user.id)).length >= MAX_PLAYLISTS)
         return replyEphemeral(inter, t.playlist.max(MAX_PLAYLISTS), "Yellow")
@@ -99,7 +99,7 @@ async function play(client: BClient, inter: Inter) {
     const saved = await client.db.getPlaylistTracks(playlist.id)
     if (!saved.length) return replyEphemeral(inter, t.playlist.empty(playlist.name), "Yellow")
 
-    const mix = inter.options.getBoolean("mezclar") ?? false
+    const mix = inter.options.getBoolean("shuffle") ?? false
 
     // Buscar cada enlace puede tardar más de los 3 s que da Discord
     await inter.deferReply()
@@ -161,7 +161,7 @@ async function rename(client: BClient, inter: Inter) {
     const playlist = await findPlaylist(client, inter, t)
     if (!playlist) return
 
-    const newName = inter.options.getString("nuevo_nombre", true).trim()
+    const newName = inter.options.getString("new_name", true).trim()
     if (!newName) return replyEphemeral(inter, t.playlist.emptyName, "Yellow")
     if (!await client.db.renamePlaylist(inter.user.id, playlist.id, newName))
         return replyEphemeral(inter, t.playlist.otherExists(newName), "Yellow")
@@ -207,10 +207,10 @@ async function remove(client: BClient, inter: Inter) {
     }
 }
 
-/** Sugiere las playlists del usuario, o canciones si se está escribiendo `busqueda` */
+/** Sugiere las playlists del usuario, o canciones si se está escribiendo `search` */
 async function autocomplete(client: BClient, inter: AutocompleteInteraction) {
     const focused = inter.options.getFocused(true)
-    if (focused.name === "busqueda") return savedTrackSearch.autocomplete(client, inter)
+    if (focused.name === "search") return savedTrackSearch.autocomplete(client, inter)
 
     const text = focused.value.toLowerCase()
     const t = await textsFor(client, inter.guildId)
@@ -221,12 +221,12 @@ async function autocomplete(client: BClient, inter: AutocompleteInteraction) {
 }
 
 const subcommands: Record<string, (client: BClient, inter: Inter) => Promise<unknown>> = {
-    crear: create, agregar: add, play, ver: view, renombrar: rename, borrar: remove,
+    create, add, play, view, rename, delete: remove,
 }
 
 export default new SlashCommand()
     .setName("playlist")
-    .setDescription(es.commands.playlist)
+    .setDescription(en.commands.playlist).setDescriptionLocalizations(esLocales(es.commands.playlist))
     .setCategory("Music")
     .setExecute(async (client, inter) => {
         try {
@@ -243,29 +243,29 @@ export default new SlashCommand()
         }
     })
     .addSubcommand(sub => sub
-        .setName("crear")
-        .setDescription(es.commands.playlistCreate)
-        .addStringOption(o => o.setName("nombre").setDescription(es.commands.playlistName).setRequired(true).setMaxLength(NAME_MAX)))
+        .setName("create").setNameLocalizations(esLocales(es.names.create))
+        .setDescription(en.commands.playlistCreate).setDescriptionLocalizations(esLocales(es.commands.playlistCreate))
+        .addStringOption(o => o.setName("name").setNameLocalizations(esLocales(es.names.name)).setDescription(en.commands.playlistName).setDescriptionLocalizations(esLocales(es.commands.playlistName)).setRequired(true).setMaxLength(NAME_MAX)))
     .addSubcommand(sub => sub
-        .setName("agregar")
-        .setDescription(es.commands.playlistAdd)
-        .addStringOption(o => o.setName("playlist").setDescription(es.commands.playlistAddTo).setRequired(true).setAutocomplete(true))
-        .addStringOption(o => o.setName("busqueda").setDescription(es.commands.playlistAddSearch).setAutocomplete(true)))
+        .setName("add").setNameLocalizations(esLocales(es.names.add))
+        .setDescription(en.commands.playlistAdd).setDescriptionLocalizations(esLocales(es.commands.playlistAdd))
+        .addStringOption(o => o.setName("playlist").setDescription(en.commands.playlistAddTo).setDescriptionLocalizations(esLocales(es.commands.playlistAddTo)).setRequired(true).setAutocomplete(true))
+        .addStringOption(o => o.setName("search").setNameLocalizations(esLocales(es.names.search)).setDescription(en.commands.playlistAddSearch).setDescriptionLocalizations(esLocales(es.commands.playlistAddSearch)).setAutocomplete(true)))
     .addSubcommand(sub => sub
         .setName("play")
-        .setDescription(es.commands.playlistPlay)
-        .addStringOption(o => o.setName("playlist").setDescription(es.commands.playlistPlayWhich).setRequired(true).setAutocomplete(true))
-        .addBooleanOption(o => o.setName("mezclar").setDescription(es.commands.playlistMix)))
+        .setDescription(en.commands.playlistPlay).setDescriptionLocalizations(esLocales(es.commands.playlistPlay))
+        .addStringOption(o => o.setName("playlist").setDescription(en.commands.playlistPlayWhich).setDescriptionLocalizations(esLocales(es.commands.playlistPlayWhich)).setRequired(true).setAutocomplete(true))
+        .addBooleanOption(o => o.setName("shuffle").setNameLocalizations(esLocales(es.names.shuffle)).setDescription(en.commands.playlistMix).setDescriptionLocalizations(esLocales(es.commands.playlistMix))))
     .addSubcommand(sub => sub
-        .setName("ver")
-        .setDescription(es.commands.playlistView)
-        .addStringOption(o => o.setName("playlist").setDescription(es.commands.playlistViewWhich).setAutocomplete(true)))
+        .setName("view").setNameLocalizations(esLocales(es.names.view))
+        .setDescription(en.commands.playlistView).setDescriptionLocalizations(esLocales(es.commands.playlistView))
+        .addStringOption(o => o.setName("playlist").setDescription(en.commands.playlistViewWhich).setDescriptionLocalizations(esLocales(es.commands.playlistViewWhich)).setAutocomplete(true)))
     .addSubcommand(sub => sub
-        .setName("renombrar")
-        .setDescription(es.commands.playlistRename)
-        .addStringOption(o => o.setName("playlist").setDescription(es.commands.playlistRenameWhich).setRequired(true).setAutocomplete(true))
-        .addStringOption(o => o.setName("nuevo_nombre").setDescription(es.commands.playlistNewName).setRequired(true).setMaxLength(NAME_MAX)))
+        .setName("rename").setNameLocalizations(esLocales(es.names.rename))
+        .setDescription(en.commands.playlistRename).setDescriptionLocalizations(esLocales(es.commands.playlistRename))
+        .addStringOption(o => o.setName("playlist").setDescription(en.commands.playlistRenameWhich).setDescriptionLocalizations(esLocales(es.commands.playlistRenameWhich)).setRequired(true).setAutocomplete(true))
+        .addStringOption(o => o.setName("new_name").setNameLocalizations(esLocales(es.names.new_name)).setDescription(en.commands.playlistNewName).setDescriptionLocalizations(esLocales(es.commands.playlistNewName)).setRequired(true).setMaxLength(NAME_MAX)))
     .addSubcommand(sub => sub
-        .setName("borrar")
-        .setDescription(es.commands.playlistDelete)
-        .addStringOption(o => o.setName("playlist").setDescription(es.commands.playlistDeleteWhich).setRequired(true).setAutocomplete(true)))
+        .setName("delete").setNameLocalizations(esLocales(es.names.delete))
+        .setDescription(en.commands.playlistDelete).setDescriptionLocalizations(esLocales(es.commands.playlistDelete))
+        .addStringOption(o => o.setName("playlist").setDescription(en.commands.playlistDeleteWhich).setDescriptionLocalizations(esLocales(es.commands.playlistDeleteWhich)).setRequired(true).setAutocomplete(true)))

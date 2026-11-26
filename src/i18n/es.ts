@@ -1,4 +1,4 @@
-// Textos que ve el usuario, en español. Los logs no van acá: son para quien mantiene el bot y quedan en español.
+// Textos que ve el usuario, en español. Los logs no van acá (por ahora siguen en español, ver ROADMAP etapa 10).
 // en.ts tiene que tener la misma forma (TypeScript avisa si falta algo).
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -112,6 +112,16 @@ const es = {
         noPermission: "❌ | Solo quien puede **Gestionar el servidor** cambia el volumen por defecto.",
         defaultSet: (v: number, alsoNow: boolean) => `🔊 Volumen por defecto del servidor: **${v}%**${alsoNow ? " (también ahora)" : ""}\n-# Se usa cada vez que el bot empieza a reproducir.`,
         set: (v: number, back: number) => `🔊 Volumen: **${v}%**\n-# Vuelve a ${back}% cuando el bot se desconecta. Para cambiar ese, usá \`predeterminado\`.`,
+    },
+    language: {
+        names: { es: "español", en: "inglés" } as Record<string, string>,
+        current: (name: string, chosen: boolean) =>
+            `🌐 Idioma del bot en este servidor: **${name}**${chosen ? "" : " (el de Discord del servidor, nadie lo eligió todavía)"}`,
+        noPermission: "❌ | Solo quien puede **Gestionar el servidor** cambia el idioma del bot.",
+        set: (name: string) => `🌐 Listo: en este servidor el bot ahora responde en **${name}**.`,
+        saveError: "❌ | No se pudo guardar el idioma, probá de nuevo en un rato.",
+        /** Va en el aviso al entrar a un servidor, junto con el mismo texto en inglés */
+        notice: (name: string) => `🇪🇸 Voy a responder en **${name}**, el idioma de Discord de este servidor. Para cambiarlo: \`/idioma\` (hace falta Gestionar el servidor).`,
     },
     ping: {
         measuring: "🏓 Midiendo…",
@@ -232,6 +242,18 @@ const es = {
         option: (name: string, tracks: string) => `${name} (${tracks})`,
     },
 
+    /**
+     * Nombre en este idioma de cada comando, subcomando y opción (la clave es el nombre en inglés, que es el base).
+     * Discord los muestra según el idioma de cada usuario; el código lee las opciones siempre por el nombre base.
+     * Minúsculas y sin tildes: es lo que acepta Discord.
+     */
+    names: {
+        favorites: "favoritos", add: "agregar", view: "ver", create: "crear", rename: "renombrar", delete: "borrar",
+        search: "busqueda", amount: "cantidad", shuffle: "mezclar", name: "nombre", new_name: "nuevo_nombre",
+        mode: "modo", level: "nivel", default: "predeterminado", from: "desde", to: "hasta",
+        position: "posicion", seconds: "segundos", language: "idioma",
+    } as Record<string, string>,
+
     /** Descripciones de los comandos y sus opciones (las ve Discord al registrarlos) */
     commands: {
         search: "Escribe el nombre de la canción, artista o pega un enlace directo.",
@@ -285,6 +307,8 @@ const es = {
         playlistNewName: "El nombre nuevo.",
         playlistDelete: "Borra una playlist y sus canciones (pide confirmación).",
         playlistDeleteWhich: "Cuál borrar.",
+        language: "Muestra o cambia el idioma del bot en este servidor (cambiarlo requiere Gestionar el servidor).",
+        languageOption: "El idioma nuevo. Sin elegir, muestra el actual.",
     },
 }
 

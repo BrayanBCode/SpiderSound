@@ -34,13 +34,13 @@ export const editReplyEmbed = (inter: ChatInputCommandInteraction<"cached">, des
 const toSaved = (track: Track): SavedTrack => ({ uri: track.uri!, title: track.title, author: track.author, duration: track.duration, artworkUrl: track.artworkUrl })
 
 /**
- * Qué guardar: lo de la opción `busqueda` o, si está vacía, la canción que suena.
+ * Qué guardar: lo de la opción `search` o, si está vacía, la canción que suena.
  * Con `allowPlaylist`, un enlace de playlist devuelve todas sus canciones (y su nombre).
  * Requiere `deferReply` hecho. Si no hay nada que guardar, ya respondió y devuelve `undefined`.
  */
 export async function resolveTracksToSave(client: BClient, inter: ChatInputCommandInteraction<"cached">, t: Texts, allowPlaylist = false)
     : Promise<{ tracks: SavedTrack[], playlistName?: string } | undefined> {
-    const query = inter.options.getString("busqueda")?.trim()
+    const query = inter.options.getString("search")?.trim()
 
     if (!query) {
         const track = client.getPlayer(inter.guildId)?.current

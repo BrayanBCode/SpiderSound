@@ -156,6 +156,18 @@ for (const url of targets) {
             expect(await db.getGuildVolume("guild-1")).toBe(45);
             expect(await db.getGuildVolume("guild-2")).toBe(10);
         });
+
+        test("el idioma se guarda aparte del volumen: cambiar uno no borra el otro", async () => {
+            expect(await db.getGuildLanguage("guild-1")).toBeNull();
+            await db.setGuildVolume("guild-1", 30);
+            await db.setGuildLanguage("guild-1", "en");
+            expect(await db.getGuildVolume("guild-1")).toBe(30);
+            await db.setGuildVolume("guild-1", 40);
+            expect(await db.getGuildLanguage("guild-1")).toBe("en");
+            await db.setGuildLanguage("guild-1", "es");
+            expect(await db.getGuildLanguage("guild-1")).toBe("es");
+            expect(await db.getGuildLanguage("guild-2")).toBeNull();
+        });
     });
 }
 

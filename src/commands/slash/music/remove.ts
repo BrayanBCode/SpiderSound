@@ -1,12 +1,12 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { deleteAfterTimer, EmptyEmbed, replyEmbed } from "../../../utils/messages.js";
 import { requireListener, respondQueuePositions } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("remove")
-    .setDescription(es.commands.remove)
+    .setDescription(en.commands.remove).setDescriptionLocalizations(esLocales(es.commands.remove))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
@@ -47,7 +47,7 @@ export default new SlashCommand()
     .setAutoComplete((client, inter) => respondQueuePositions(client, inter))
     .addNumberOption(
         o => o
-            .setName("position")
-            .setDescription(es.commands.removePosition)
+            .setName("position").setNameLocalizations(esLocales(es.names.position))
+            .setDescription(en.commands.removePosition).setDescriptionLocalizations(esLocales(es.commands.removePosition))
             .setAutocomplete(true)
             .setRequired(true))

@@ -1,11 +1,11 @@
 import { deleteAfterTimer, EmptyEmbed, replyEmbed } from "../../../utils/messages.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { requireListener } from "../../../core/music/player.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 
 export default new SlashCommand()
     .setName("clear")
-    .setDescription(es.commands.clear)
+    .setDescription(en.commands.clear).setDescriptionLocalizations(esLocales(es.commands.clear))
     .setCategory("Music")
 
     .setExecute(

@@ -126,12 +126,32 @@ export class BotDatabase {
                 artwork_url TEXT,
                 PRIMARY KEY (playlist_id, position)
             )`);
-        // Ajustes por servidor: por ahora solo el volumen con el que arranca el reproductor (/volume predeterminado)
+        // Ajustes por servidor: el volumen con el que arranca el reproductor (/volume default) y el idioma (/language)
         await this.sql.unsafe(`
             CREATE TABLE IF NOT EXISTS guild_settings (
                 guild_id TEXT PRIMARY KEY,
-                volume   INTEGER
+                volume   INTEGER,
+                language TEXT
             )`);
+        await this.addColumn("guild_settings", "language", "TEXT");
+    }
+
+    /** Agrega una columna a una tabla creada por una versión anterior. No falla si ya existe */
+    private async addColumn(table: string, column: string, type: string) {
+        if (this.postgres) {
+            await this.sql.unsafe(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${column} ${type}`);
+            return;
+        }
+        // SQLite no tiene IF NOT EXISTS para columnas
+        const columns: { name: string }[] = await this.sql.unsafe(`PRAGMA table_info(${table})`);
+        if (columns.some(c => c.name === column)) return;
+        try {
+            await this.sql.unsafe(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+            logger.info(`[DB] Columna nueva: ${table}.${column}`);
+        } catch (err) {
+            // Otro shard la agregó entre la consulta y el ALTER
+            if (!/duplicate column/i.test((err as Error).message)) throw err;
+        }
     }
 
     /** La conexión, después de crear las tablas */
@@ -152,6 +172,20 @@ export class BotDatabase {
         await sql`
             INSERT INTO guild_settings (guild_id, volume) VALUES (${guildId}, ${volume})
             ON CONFLICT (guild_id) DO UPDATE SET volume = excluded.volume`;
+    }
+
+    /** Idioma elegido con /language ("es", "en"). `null` si nunca se eligió: se usa el de Discord */
+    async getGuildLanguage(guildId: string): Promise<string | null> {
+        const sql = await this.db();
+        const [row] = await sql`SELECT language FROM guild_settings WHERE guild_id = ${guildId}`;
+        return row?.language ?? null;
+    }
+
+    async setGuildLanguage(guildId: string, language: string) {
+        const sql = await this.db();
+        await sql`
+            INSERT INTO guild_settings (guild_id, language) VALUES (${guildId}, ${language})
+            ON CONFLICT (guild_id) DO UPDATE SET language = excluded.language`;
     }
 
     /** Agrega la canción a los favoritos del usuario, o la quita si ya estaba (botón ❤️) */

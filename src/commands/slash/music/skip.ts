@@ -1,5 +1,5 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js"
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { EmptyEmbed, deleteAfterTimer, replyEmbed } from "../../../utils/messages.js";
 import { getRequesterInfo, requireListener, respondQueuePositions, skipTrack, trackActionEmbed } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
@@ -7,7 +7,7 @@ import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("skip")
-    .setDescription(es.commands.skip)
+    .setDescription(en.commands.skip).setDescriptionLocalizations(esLocales(es.commands.skip))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
@@ -51,7 +51,7 @@ export default new SlashCommand()
     .setAutoComplete((client, inter) => respondQueuePositions(client, inter))
     .addNumberOption(
         o => o
-            .setName("position")
-            .setDescription(es.commands.skipPosition)
+            .setName("position").setNameLocalizations(esLocales(es.names.position))
+            .setDescription(en.commands.skipPosition).setDescriptionLocalizations(esLocales(es.commands.skipPosition))
             .setAutocomplete(true)
             .setRequired(false))

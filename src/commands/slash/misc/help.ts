@@ -1,5 +1,5 @@
 import { ApplicationCommandOptionType, MessageFlags } from "discord.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, guildLang, languages, type Lang } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import logger from "../../../core/client/logger.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
@@ -10,26 +10,39 @@ const SECTIONS: { title: keyof typeof es.help.sections; commands: string[] }[] =
     { title: "playback", commands: ["play", "playnext", "forceplay", "pause", "resume", "stop"] },
     { title: "queue", commands: ["queue", "skip", "move", "remove", "shuffle", "clear"] },
     { title: "control", commands: ["loop", "volume", "forward", "backward"] },
-    { title: "saved", commands: ["favoritos", "playlist"] },
+    { title: "saved", commands: ["favorites", "playlist"] },
 ];
 const DESCRIPTION_MAX = 4096;
 const MESSAGE_MAX = 6000;
 
+type Localized = { name: string; description: string; name_localizations?: Record<string, string | null> | null; description_localizations?: Record<string, string | null> | null };
+
+/** Nombre y descripción en el idioma pedido: el base es inglés, el español sale de las traducciones de Discord */
+const inLang = (o: Localized, lang: Lang) => lang === "en" ? o : {
+    name: o.name_localizations?.["es-ES"] ?? o.name,
+    description: o.description_localizations?.["es-ES"] ?? o.description,
+};
+
 /** Líneas "/comando sub — descripción" de un comando (una por subcomando si tiene) */
-function commandLines(cmd: SlashCommand): string[] {
-    const { name, description, options = [] } = cmd.toJSON();
-    const subs = options.filter(o => o.type === ApplicationCommandOptionType.Subcommand);
+function commandLines(cmd: SlashCommand, lang: Lang): string[] {
+    const json = cmd.toJSON();
+    const { name, description } = inLang(json, lang);
+    const subs = (json.options ?? []).filter(o => o.type === ApplicationCommandOptionType.Subcommand);
     if (!subs.length) return [`**/${name}** — ${description}`];
-    return subs.map(sub => `**/${name} ${sub.name}** — ${sub.description}`);
+    return subs.map(sub => {
+        const s = inLang(sub, lang);
+        return `**/${name} ${s.name}** — ${s.description}`;
+    });
 }
 
 export default new SlashCommand()
     .setName("help")
-    .setDescription(es.commands.help)
+    .setDescription(en.commands.help).setDescriptionLocalizations(esLocales(es.commands.help))
     .setCategory("Misc")
     .setExecute(async (client, inter) => {
         try {
-            const t = await textsFor(client, inter.guildId);
+            const { lang } = await guildLang(client, inter.guildId);
+            const t = languages[lang];
             // Se arma con los comandos cargados (descripción incluida): solo el orden y las secciones están acá
             const loaded = client.slashCommands;
             const placed = new Set(SECTIONS.flatMap(s => s.commands));
@@ -41,7 +54,7 @@ export default new SlashCommand()
                 { title: t.help.sections.others, cmds: others },
             ].filter(s => s.cmds.length);
 
-            const lines = sections.flatMap(s => [`### ${s.title}`, ...s.cmds.flatMap(commandLines)]);
+            const lines = sections.flatMap(s => [`### ${s.title}`, ...s.cmds.flatMap(cmd => commandLines(cmd, lang))]);
 
             // Discord: 4096 caracteres por descripción y 6000 entre todos los embeds del mensaje
             const descriptions: string[] = [];

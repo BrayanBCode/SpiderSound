@@ -1,4 +1,5 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
+import { es, textsFor } from "../../../i18n/index.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 import { requireListener } from "../../../core/music/player.js";
 import { loopMessage, nextLoopMode } from "../../../core/music/timing.js";
@@ -6,10 +7,11 @@ import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("loop")
-    .setDescription("Repetición: OFF, canción o cola (sin elegir, pasa a la siguiente, como el botón).")
+    .setDescription(es.commands.loop)
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
+            const t = await textsFor(client, inter.guildId);
             const player = await requireListener(client, inter);
             if (!player) return;
 
@@ -17,15 +19,15 @@ export default new SlashCommand()
             player.setLoop(mode);
             logger.info(`[/loop] ${inter.user.username} puso el loop en ${mode} en ${inter.guild.name}`);
 
-            return inter.reply({ embeds: [EmptyEmbed().setDescription(loopMessage(mode)).setColor("Green")] });
+            return inter.reply({ embeds: [EmptyEmbed().setDescription(loopMessage(mode, t)).setColor("Green")] });
         }
     )
     .addStringOption(o => o
         .setName("modo")
-        .setDescription("Qué repetir.")
+        .setDescription(es.commands.loopMode)
         .setRequired(false)
         .addChoices(
-            { name: "OFF (no repetir)", value: "off" },
-            { name: "Canción actual", value: "track" },
-            { name: "Toda la cola", value: "queue" },
+            { name: es.loop.choices.off, value: "off" },
+            { name: es.loop.choices.track, value: "track" },
+            { name: es.loop.choices.queue, value: "queue" },
         ))

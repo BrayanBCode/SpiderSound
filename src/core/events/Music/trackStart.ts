@@ -13,7 +13,7 @@ export default class TStart extends MEvent<"trackStart"> {
     }
     async execute(client: BClient, player: Player, track: Track) {
         const guildName = client.getGuild(player.guildId)?.name ?? player.guildId;
-        const requester = getRequesterInfo(track.requester).name;
+        const requester = getRequesterInfo(track.requester, "Desconocido").name;
         logger.info(`[TrackStart] Sonando "${track.title}" en ${guildName} (pedida por ${requester}, cola: ${player.queue.size})`);
 
         const textChannel = client.getTextChannel(player.textChannelId) as TextChannel;

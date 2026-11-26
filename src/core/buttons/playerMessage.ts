@@ -1,4 +1,5 @@
 import { ButtonInteraction, ButtonStyle, GuildMember, Message, MessageFlags, TextChannel, User } from "discord.js"
+import { languages, textsFor, type Texts } from "../../i18n/index.js"
 import { CustomButtonBuilder, DisplayButtonsBuilder, IButtonInteraction } from "./DisplayButtonsBuilder.js"
 import logger from "../client/logger.js"
 import type { BClient } from "../client/BClient.js"
@@ -12,10 +13,8 @@ import { discordRelative, loopLabel, loopMessage, nextLoopMode, remainingMs, tot
 
 /** Espera antes de editar por un cambio, para juntar varios en una edición (y que moonlink ya haya aplicado el estado) */
 const UPDATE_DELAY = 1500
-/** Títulos del embed "Escuchando" (ver getPlayingEmbed): así se reconoce un mensaje del reproductor de un proceso anterior */
-const PLAYING_AUTHOR = "Escuchando 🎶"
-const PAUSED_AUTHOR = "En pausa ⏸️"
-const PLAYER_AUTHORS = [PLAYING_AUTHOR, PAUSED_AUTHOR]
+/** Títulos del embed "Escuchando" en todos los idiomas (ver getPlayingEmbed): así se reconoce un mensaje del reproductor de un proceso anterior */
+const PLAYER_AUTHORS = Object.values(languages).flatMap(t => [t.player.playing, t.player.paused])
 /** Cuántos mensajes del canal se revisan al reanudar buscando el mensaje viejo */
 const STALE_SEARCH_LIMIT = 50
 /** Eventos de moonlink.js que cambian lo que muestra el mensaje "Escuchando" */
@@ -159,7 +158,8 @@ export class PlayerMessage {
 
         this.updatePrevButton(data.view, player)
         try {
-            await data.Message.edit({ embeds: [this.getPlayingEmbed(player.current, player)], components: data.view.actionRows })
+            const t = await textsFor(this.client, guildID)
+            await data.Message.edit({ embeds: [this.getPlayingEmbed(player.current, player, t)], components: data.view.actionRows })
             logger.debug(`[PlayerMessage] Mensaje "Escuchando" editado para "${player.current.title}" en #${data.channel.name} (${data.channel.guild.name})`)
             return true
         } catch (err) {
@@ -204,7 +204,7 @@ export class PlayerMessage {
 
         this.updatePrevButton(view, player)
 
-        const msg = await view.send(channel, this.getPlayingEmbed(currentTrack, player))
+        const msg = await view.send(channel, this.getPlayingEmbed(currentTrack, player, await textsFor(this.client, guildID)))
 
         if (!this.client.getPlayer(guildID)) {
             logger.debug(`[PlayerMessage] El player se destruyó mientras se enviaba el mensaje, se elimina`)
@@ -238,32 +238,32 @@ export class PlayerMessage {
         return this.MessageContainer.get(guildID)
     }
 
-    private getPlayingEmbed(track: Track, player: Player) {
-        const requester = getRequesterInfo(track.requester)
+    private getPlayingEmbed(track: Track, player: Player, t: Texts) {
+        const requester = getRequesterInfo(track.requester, t.common.unknown)
         const paused = player.paused
         const left = remainingMs(track)
 
         // Pausada no tiene hora de fin: se muestra por dónde va. La marca relativa la actualiza Discord sola
         const time = paused
-            ? `• Va por: \`${formatMS_HHMMSS(track.position ?? 0)}\``
-            : `• Termina: ${left === undefined ? "`En vivo`" : discordRelative(left)}`
+            ? t.player.at(formatMS_HHMMSS(track.position ?? 0))
+            : t.player.ends(left === undefined ? `\`${t.common.live}\`` : discordRelative(left))
 
         const queued = player.queue.tracks
         const footer = queued.length
-            ? `Pedido por ${requester.name} · ${queued.length} en cola (${formatMS_HHMMSS(totalDuration(queued))})`
-            : `Pedido por ${requester.name}`
+            ? t.player.footer(requester.name, queued.length, formatMS_HHMMSS(totalDuration(queued)))
+            : t.common.requestedBy(requester.name)
 
         // Líneas en la descripción y no campos en columnas: un artista largo desalineaba las columnas
         const description = [
-            `**${track.author || "Desconocido"}** · \`${track.isStream ? "En vivo" : formatMS_HHMMSS(track.duration)}\``,
+            `**${track.author || t.common.unknown}** · \`${track.isStream ? t.common.live : formatMS_HHMMSS(track.duration)}\``,
             time,
-            `• Loop: \`${loopLabel(player.loop)}\` · Volumen: \`${player.volume}%\``,
-            `• Siguiente: ${this.nextLabel(player)}`,
+            t.player.loopVolume(loopLabel(player.loop, t), player.volume),
+            t.player.next(this.nextLabel(player, t)),
         ].join("\n").slice(0, 4096)
 
         const embed = EmptyEmbed()
-            .setAuthor({ name: paused ? PAUSED_AUTHOR : PLAYING_AUTHOR, iconURL: requester.avatar })
-            .setTitle(titleCleaner(track.title, track.author) ?? "Titulo desconocido")
+            .setAuthor({ name: paused ? t.player.paused : t.player.playing, iconURL: requester.avatar })
+            .setTitle(titleCleaner(track.title, track.author) ?? t.player.untitled)
             .setURL(track.uri ?? "")
             .setDescription(description)
             .setColor(paused ? 0x80848E : 0x1DB954)
@@ -279,11 +279,11 @@ export class PlayerMessage {
     }
 
     /** Qué suena después de la actual, según la cola y la repetición */
-    private nextLabel(player: Player) {
-        if (player.loop === "track") return "Esta misma (repetición de canción)"
+    private nextLabel(player: Player, t: Texts) {
+        if (player.loop === "track") return t.player.nextSameTrack
         const next = player.queue.tracks[0]
         if (next) return `${titleCleaner(next.title, next.author)} · ${next.author}`
-        return player.loop === "queue" ? "Esta misma (repetición de cola)" : "Nada, la cola está vacía"
+        return player.loop === "queue" ? t.player.nextSameQueue : t.player.nextNothing
     }
 
     /**
@@ -303,10 +303,11 @@ export class PlayerMessage {
                 const memberVC = (inter.member as GuildMember | null)?.voice.channelId
                 if (!["queue", "favorite"].includes(button.custom_id) && memberVC !== player.voiceChannelId) {
                     logger.info(`[PlayerButtons] ${inter.user.username} intentó usar ${button.custom_id} fuera del canal de voz del bot en ${inter.guild?.name}`)
+                    const t = await textsFor(client, inter.guildId)
                     deleteAfterTimer(await replyEmbed({
                         interaction: inter as ButtonInteraction<"cached">,
                         embed: EmptyEmbed()
-                            .setDescription("❌ | Tienes que estar en el canal de voz del bot para usar este botón.")
+                            .setDescription(t.player.notListener)
                             .setColor("Red"),
                         ephemeral: true,
                     }), 10000)
@@ -329,6 +330,7 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter, col) => {
+                    const t = await textsFor(client, inter.guildId)
                     const player = client.getPlayer(inter.guildId)!
 
                     // Aunque la cola esté vacía muestra lo que suena (y "No hay más canciones en la cola")
@@ -341,6 +343,7 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter) => {
+                    const t = await textsFor(client, inter.guildId)
                     const player = client.getPlayer(inter.guildId)!
 
                     const wentBack = await player.back();
@@ -349,8 +352,8 @@ export class PlayerMessage {
                         interaction: inter as ButtonInteraction<"cached">,
                         embed: EmptyEmbed()
                             .setDescription(wentBack
-                                ? `Reproduciendo: **${player.current?.title ?? "canción anterior"}**`
-                                : "❌ No hay una canción anterior")
+                                ? t.player.playingPrevious(player.current?.title ?? t.player.previousFallback)
+                                : t.player.noPrevious)
                     });
 
                     deleteAfterTimer(prevMsg, 10000)
@@ -363,6 +366,7 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter, col) => {
+                    const t = await textsFor(client, inter.guildId)
                     const player = client.getPlayer(inter.guildId)!
 
                     // moonlink deja `playing` en true durante la pausa: lo que dice si está pausado es `paused`
@@ -373,7 +377,7 @@ export class PlayerMessage {
                     const ResumePlayMsg = await replyEmbed({
                         interaction: inter as ButtonInteraction<"cached">,
                         embed: EmptyEmbed()
-                            .setDescription(wasPaused ? "▶️ Reproducción reanudada" : "⏸️ Reproducción en pausa")
+                            .setDescription(wasPaused ? t.player.resumed : t.player.pausedNow)
                     });
 
                     deleteAfterTimer(ResumePlayMsg, 5000)
@@ -385,6 +389,7 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter, col) => {
+                    const t = await textsFor(client, inter.guildId)
                     const player = client.getPlayer(inter.guildId)!
 
                     // Con loop de cola, saltar la única canción la vuelve a poner desde el principio
@@ -392,7 +397,7 @@ export class PlayerMessage {
                         const emptyQueue = await replyEmbed({
                             interaction: inter as ButtonInteraction<"cached">,
                             embed: EmptyEmbed()
-                                .setDescription("❌ No hay suficientes canciones en la lista")
+                                .setDescription(t.player.notEnough)
                                 .setColor("Yellow")
                         })
 
@@ -406,7 +411,7 @@ export class PlayerMessage {
                     const nextMsg = await replyEmbed({
                         interaction: inter as ButtonInteraction<"cached">,
                         embed: EmptyEmbed()
-                            .setDescription(`⏭️ Canción saltada`)
+                            .setDescription(t.player.skipped)
                     });
 
                     deleteAfterTimer(nextMsg, 10000)
@@ -418,12 +423,13 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter) => {
+                    const t = await textsFor(client, inter.guildId)
                     const track = client.getPlayer(inter.guildId)!.current
 
                     if (!track?.uri) {
                         await replyEmbed({
                             interaction: inter as ButtonInteraction<"cached">,
-                            embed: EmptyEmbed().setDescription("❌ | Esta canción no se puede guardar en favoritos.").setColor("Red"),
+                            embed: EmptyEmbed().setDescription(t.player.cannotFavorite).setColor("Red"),
                             ephemeral: true,
                         })
                         return
@@ -443,7 +449,7 @@ export class PlayerMessage {
                         logger.error(`[Favoritos] No se pudo guardar "${track.title}" para ${inter.user.username}:`, err)
                         await replyEmbed({
                             interaction: inter as ButtonInteraction<"cached">,
-                            embed: EmptyEmbed().setDescription("❌ | No se pudo actualizar tus favoritos, probá de nuevo en un rato.").setColor("Red"),
+                            embed: EmptyEmbed().setDescription(t.player.favoriteError).setColor("Red"),
                             ephemeral: true,
                         })
                         return
@@ -455,9 +461,7 @@ export class PlayerMessage {
                     await replyEmbed({
                         interaction: inter as ButtonInteraction<"cached">,
                         embed: EmptyEmbed()
-                            .setDescription(result === "added"
-                                ? `❤️ **${title}** se agregó a tus favoritos.`
-                                : `💔 **${title}** se quitó de tus favoritos.`)
+                            .setDescription(result === "added" ? t.player.favoriteAdded(title) : t.player.favoriteRemoved(title))
                             .setColor(result === "added" ? "Green" : "Grey"),
                         ephemeral: true,
                     })
@@ -469,11 +473,12 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter, col) => {
+                    const t = await textsFor(client, inter.guildId)
                     const player = client.getPlayer(inter.guildId)!
                     const mode = nextLoopMode(player.loop)
                     player.setLoop(mode)
                     logger.info(`[PlayerButtons] ${inter.user.username} cambió el loop a ${mode} en ${inter.guild?.name}`)
-                    await inter.reply({ embeds: [EmptyEmbed().setDescription(loopMessage(mode)).setColor("Green")], flags: MessageFlags.Ephemeral })
+                    await inter.reply({ embeds: [EmptyEmbed().setDescription(loopMessage(mode, t)).setColor("Green")], flags: MessageFlags.Ephemeral })
                 }
             ),
             new CustomButtonBuilder({
@@ -482,6 +487,7 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter, col) => {
+                    const t = await textsFor(client, inter.guildId)
                     const player = client.getPlayer(inter.guildId)!;
                     await seekRelative(player, -10_000);
 
@@ -489,7 +495,7 @@ export class PlayerMessage {
                         await inter.reply({
                             embeds: [
                                 EmptyEmbed()
-                                    .setDescription("⏪ Retrocediendo 10 segundos")
+                                    .setDescription(t.player.back10)
                                     .setColor("Green")
                             ],
                             flags: MessageFlags.Ephemeral
@@ -501,12 +507,13 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter, col) => {
+                    const t = await textsFor(client, inter.guildId)
                     const player = client.getPlayer(inter.guildId)!
 
                     const stopMsg = await replyEmbed({
                         interaction: (inter as ButtonInteraction<"cached">),
                         embed: EmptyEmbed()
-                            .setDescription("🛑 Se detuvo la reproducción")
+                            .setDescription(t.player.stopped)
                             .setColor("Blue")
                     })
 
@@ -523,6 +530,7 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter, col) => {
+                    const t = await textsFor(client, inter.guildId)
                     const player = client.getPlayer(inter.guildId)!;
                     await seekRelative(player, 15_000);
 
@@ -530,7 +538,7 @@ export class PlayerMessage {
                         await inter.reply({
                             embeds: [
                                 EmptyEmbed()
-                                    .setDescription("⏩ Avanzando 15 segundos")
+                                    .setDescription(t.player.fwd15)
                                     .setColor("Green")
                             ],
                             flags: MessageFlags.Ephemeral
@@ -542,13 +550,14 @@ export class PlayerMessage {
                 style: ButtonStyle.Secondary
             },
                 async (client, inter, col) => {
+                    const t = await textsFor(client, inter.guildId)
                     const player = client.getPlayer(inter.guildId)!
 
                     if (player.queue.size < 2) {
                         const emptyQueue = await replyEmbed({
                             interaction: inter as ButtonInteraction<"cached">,
                             embed: EmptyEmbed()
-                                .setDescription("❌ Hacen falta al menos 2 canciones en la cola para mezclar")
+                                .setDescription(t.common.needTwoToShuffle)
                                 .setColor("Yellow"),
                             ephemeral: true
                         })
@@ -563,7 +572,7 @@ export class PlayerMessage {
                     await inter.reply({
                         embeds: [
                             EmptyEmbed()
-                                .setDescription("🔀 Lista mezclada")
+                                .setDescription(t.player.shuffled)
                                 .setColor("Green")
                         ],
                         flags: MessageFlags.Ephemeral

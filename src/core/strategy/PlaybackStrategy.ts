@@ -8,6 +8,7 @@ import { EmptyEmbed, deleteAfterTimer } from "../../utils/messages.js";
 import { formatMS_HHMMSS, titleCleaner } from "../../utils/tools.js";
 import { getRequesterInfo } from "../music/player.js";
 import { discordRelative, startsInMs, totalDuration } from "../music/timing.js";
+import { textsFor, type Texts } from "../../i18n/index.js";
 
 
 export enum queryErrors {
@@ -29,20 +30,12 @@ export interface IAddToQueueParams {
 const SPOTIFY_COLLECTION = /open\.spotify\.com\/(?:intl-[^/]+\/)?(album|playlist|artist)\//;
 /** Tope de canciones por playlist de Spotify: `playlistLoadLimit` (páginas de 100) en application.yml */
 const SPOTIFY_PLAYLIST_MAX = 100;
-const SPOTIFY_COLLECTION_MSG = "No se pudo cargar eso de Spotify. Si es una playlist, fijate que sea pública: las privadas y las armadas para tu cuenta (Daily Mix, Descubrimiento semanal) no se pueden leer.";
 
 /** Los avisos de "agregada a la cola" se borran solos: el chat queda limpio y el reproductor no queda tapado */
 const ADDED_MESSAGE_TIME = 60_000;
 
 /** Dónde quedan las canciones agregadas: al final (/play), después de la actual (/playnext) o sonando ya (/forceplay) */
 export type AddMode = "queue" | "next" | "now";
-
-const ADDED_HEADERS: Record<AddMode | "idle", { track: string; playlist: string }> = {
-    queue: { track: "Agregada a la cola 🎧", playlist: "Playlist agregada a la cola 🎧" },
-    next: { track: "Suena después de la actual ⏭️", playlist: "Playlist después de la actual ⏭️" },
-    now: { track: "Sonando ahora 🎶", playlist: "Playlist sonando ahora 🎶" },
-    idle: { track: "Sonando ahora 🎶", playlist: "Playlist sonando ahora 🎶" },
-};
 
 /** Límite de Discord para el `value` de una opción de autocompletado */
 const AUTOCOMPLETE_VALUE_MAX = 100;
@@ -97,6 +90,7 @@ export abstract class PlaybackStrategy {
 
         // La búsqueda (YouTube + cipher) y la conexión pueden superar los 3 s que da Discord
         await inter.deferReply();
+        const t = await textsFor(client, GuildID);
         logger.info(`[${inter.commandName}] ${inter.user.username} pidió "${query}" en ${inter.guild.name}`);
 
         try {
@@ -110,7 +104,7 @@ export abstract class PlaybackStrategy {
             if (!results?.tracks?.length) {
                 const spotifyType = query.match(SPOTIFY_COLLECTION)?.[1];
                 logger.info(`[${inter.commandName}] Sin resultados para "${query}" (loadType: ${results?.loadType ?? "desconocido"}${spotifyType ? `, ${spotifyType} de Spotify sin cargar` : ""})`);
-                return this.editReplyAndDelete(inter, EmptyEmbed({ description: spotifyType ? SPOTIFY_COLLECTION_MSG : "No se encontraron resultados" }).setColor("Red"));
+                return this.editReplyAndDelete(inter, EmptyEmbed({ description: spotifyType ? t.play.spotifyFailed : t.play.noResults }).setColor("Red"));
             }
 
             const player = await client.getPlayerOrDefault(inter, GuildID);
@@ -119,13 +113,13 @@ export abstract class PlaybackStrategy {
                 await player.connect({ selfDeaf: true, selfMute: false });
             }
 
-            await this.addToQueue({ inter, player, res: results });
+            await this.addToQueue({ inter, player, res: results }, t);
             await this.afterAddToQueue(player);
             await startIfIdle(player);
 
         } catch (err) {
             logger.error(`[${inter.commandName}] Error procesando "${query}" en ${inter.guild.name}:`, err);
-            await this.editReplyAndDelete(inter, EmptyEmbed({ description: "❌ Ocurrió un error al reproducir, intenta de nuevo." }).setColor("Red"));
+            await this.editReplyAndDelete(inter, EmptyEmbed({ description: t.play.error }).setColor("Red"));
         }
     }
 
@@ -151,14 +145,15 @@ export abstract class PlaybackStrategy {
     private async respondAutocomplete(client: BClient, inter: AutocompleteInteraction<CacheType>) {
         const GuildID = inter.guildId;
         if (!GuildID) return;
+        const t = await textsFor(client, GuildID);
 
         if (this.suggestionsNeedVoice) {
             const VCID = (inter.member as GuildMember).voice.channelId;
-            if (!VCID) return inter.respond([{ name: "Debes unirte a un canal de voz para buscar canciones", value: queryErrors.JOIN_VC }]);
+            if (!VCID) return inter.respond([{ name: t.play.suggest.joinVC, value: queryErrors.JOIN_VC }]);
 
             const player = client.getPlayer(GuildID);
             if (player?.connected && player.voiceChannelId !== VCID)
-                return inter.respond([{ name: "Debes unirte al mismo canal de voz que el bot", value: queryErrors.JOIN_VC }]);
+                return inter.respond([{ name: t.play.suggest.sameVC, value: queryErrors.JOIN_VC }]);
         }
 
         const focusedQuery = inter.options.getFocused().trim();
@@ -169,21 +164,20 @@ export abstract class PlaybackStrategy {
         const spotifyType = focusedQuery.match(SPOTIFY_COLLECTION)?.[1];
         if (spotifyType) {
             if (focusedQuery.length > AUTOCOMPLETE_VALUE_MAX) return inter.respond([]);
-            return inter.respond([{ name: `Spotify (${spotifyType}): se carga al enviar, puede tardar unos segundos`, value: focusedQuery }]);
+            return inter.respond([{ name: t.play.suggest.spotify(spotifyType), value: focusedQuery }]);
         }
 
         const res: SearchResult | undefined = await client.music.search({ query: focusedQuery, requester: inter.user });
 
         if (!res?.tracks?.length) {
-            const name = "No se encontraron resultados";
-            return inter.respond([{ name: name.slice(0, 100), value: queryErrors.NO_RESULTS }]);
+            return inter.respond([{ name: t.play.noResults.slice(0, 100), value: queryErrors.NO_RESULTS }]);
         }
 
         if (res.loadType === "playlist") {
             // La URL de la playlist es lo que se escribió; si es demasiado larga, al enviar se usa el texto tal cual
             if (focusedQuery.length > AUTOCOMPLETE_VALUE_MAX) return inter.respond([]);
             return inter.respond([{
-                name: `Playlist [${res.tracks.length} Tracks] - ${res.playlistInfo?.name ?? "Playlist desconocida"}`.slice(0, 100),
+                name: t.play.suggest.playlist(res.tracks.length, res.playlistInfo?.name ?? t.play.suggest.unknownPlaylist).slice(0, 100),
                 value: focusedQuery
             }]);
         }
@@ -208,10 +202,10 @@ export abstract class PlaybackStrategy {
      * Agrega los resultados a la cola y responde (editando el mensaje diferido)
      * con lo que se agregó. El aviso se borra solo a los ADDED_MESSAGE_TIME.
      */
-    private async addToQueue({ player, res, inter }: IAddToQueueParams) {
+    private async addToQueue({ player, res, inter }: IAddToQueueParams, t: Texts) {
         // Si no sonaba nada, lo agregado empieza ya, sea cual sea el comando
         const mode = !player.playing && !player.current ? "idle" : this.addMode;
-        const requester = getRequesterInfo(inter.member);
+        const requester = getRequesterInfo(inter.member, t.common.unknown);
         const embed = EmptyEmbed().setColor("Green");
 
         if (res.loadType === "playlist") {
@@ -219,39 +213,39 @@ export abstract class PlaybackStrategy {
             await this.addTracks(player, tracks);
 
             const query = inter.options.getString("busqueda") ?? "";
-            const first = tracks.slice(0, 3).map((t, i) => `**${i + 1}.** ${titleCleaner(t.title, t.author)} · \`${formatMS_HHMMSS(t.duration)}\``);
-            if (tracks.length > 3) first.push(`…y ${tracks.length - 3} más`);
+            const first = tracks.slice(0, 3).map((track, i) => `**${i + 1}.** ${titleCleaner(track.title, track.author)} · \`${formatMS_HHMMSS(track.duration)}\``);
+            if (tracks.length > 3) first.push(t.play.andMore(tracks.length - 3));
 
-            embed.setAuthor({ name: ADDED_HEADERS[mode].playlist, iconURL: requester.avatar })
-                .setTitle(res.playlistInfo?.name ?? "Playlist")
+            embed.setAuthor({ name: t.play.headers[mode].playlist, iconURL: requester.avatar })
+                .setTitle(res.playlistInfo?.name ?? t.play.playlistFallback)
                 .setURL(/^https?:\/\//.test(query) ? query : null)
-                .setDescription(`**${tracks.length}** canciones · ${formatMS_HHMMSS(totalDuration(tracks))} en total`
-                    + (tracks.length >= SPOTIFY_PLAYLIST_MAX && SPOTIFY_COLLECTION.test(query) ? `\n-# De Spotify se cargan las primeras ${SPOTIFY_PLAYLIST_MAX}` : ""))
+                .setDescription(t.play.playlistSummary(tracks.length, formatMS_HHMMSS(totalDuration(tracks)))
+                    + (tracks.length >= SPOTIFY_PLAYLIST_MAX && SPOTIFY_COLLECTION.test(query) ? t.play.spotifyLimit(SPOTIFY_PLAYLIST_MAX) : ""))
                 .setThumbnail(tracks[0].artworkUrl ?? null)
-                .addFields({ name: "Empieza con", value: first.join("\n").slice(0, 1024) })
-                .setFooter({ text: `Pedido por ${requester.name} · ${player.queue.size} en cola` });
+                .addFields({ name: t.play.startsWith, value: first.join("\n").slice(0, 1024) })
+                .setFooter({ text: t.play.playlistFooter(requester.name, player.queue.size) });
 
             logger.info(`[${inter.commandName}] Playlist "${res.playlistInfo?.name}" (${tracks.length} canciones) agregada en ${inter.guild.name} (${mode}, cola: ${player.queue.size})`);
         } else {
             const track = res.tracks[0];
             await this.addTracks(player, track);
 
-            embed.setAuthor({ name: ADDED_HEADERS[mode].track, iconURL: requester.avatar })
+            embed.setAuthor({ name: t.play.headers[mode].track, iconURL: requester.avatar })
                 .setTitle(titleCleaner(track.title, track.author))
                 .setURL(track.uri ?? null)
                 .setThumbnail(track.artworkUrl ?? null)
                 .addFields(
-                    { name: "Artista", value: track.author || "Desconocido", inline: true },
-                    { name: "Duración", value: track.isStream ? "En vivo" : formatMS_HHMMSS(track.duration), inline: true },
+                    { name: t.common.artist, value: track.author || t.common.unknown, inline: true },
+                    { name: t.common.duration, value: track.isStream ? t.common.live : formatMS_HHMMSS(track.duration), inline: true },
                 )
-                .setFooter({ text: `Pedido por ${requester.name}` });
+                .setFooter({ text: t.common.requestedBy(requester.name) });
 
             // Solo si espera turno: posición en la cola y cuándo suena (aprox.: pausas y saltos lo cambian)
             const index = player.queue.tracks.indexOf(track);
             if (mode !== "now" && mode !== "idle" && index >= 0) {
-                embed.addFields({ name: "Posición", value: `#${index + 1}`, inline: true });
+                embed.addFields({ name: t.play.position, value: `#${index + 1}`, inline: true });
                 const startsIn = startsInMs(player.current, player.queue.tracks, index);
-                if (startsIn !== undefined) embed.addFields({ name: "Suena", value: `${discordRelative(startsIn)} aprox.` });
+                if (startsIn !== undefined) embed.addFields({ name: t.play.startsAt, value: t.play.approx(discordRelative(startsIn)) });
             }
 
             logger.info(`[${inter.commandName}] "${track.title}" agregada en ${inter.guild.name} (${mode}, posición: ${index + 1}, cola: ${player.queue.size})`);

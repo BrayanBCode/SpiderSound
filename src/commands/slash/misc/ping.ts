@@ -1,4 +1,5 @@
 import { MessageFlags } from "discord.js";
+import { es, textsFor } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import logger from "../../../core/client/logger.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
@@ -8,11 +9,12 @@ const color = (ms: number) => ms < 200 ? "Green" : ms < 500 ? "Yellow" : "Red";
 
 export default new SlashCommand()
     .setName("ping")
-    .setDescription("Muestra cuánto tarda el bot en responder (en ms).")
+    .setDescription(es.commands.ping)
     .setCategory("Misc")
     .setExecute(async (client, inter) => {
         try {
-            const { resource } = await inter.reply({ content: "🏓 Midiendo…", flags: MessageFlags.Ephemeral, withResponse: true });
+            const t = await textsFor(client, inter.guildId);
+            const { resource } = await inter.reply({ content: t.ping.measuring, flags: MessageFlags.Ephemeral, withResponse: true });
             // Desde que el usuario mandó el comando hasta que llegó la respuesta del bot
             const roundtrip = (resource?.message?.createdTimestamp ?? Date.now()) - inter.createdTimestamp;
             // -1 mientras el shard todavía no midió su primer latido
@@ -22,7 +24,7 @@ export default new SlashCommand()
             return inter.editReply({
                 content: "",
                 embeds: [EmptyEmbed()
-                    .setDescription(`🏓 **Pong!**\nRespuesta: **${roundtrip} ms**\nConexión con Discord: **${gateway >= 0 ? `${gateway} ms` : "midiendo…"}**`)
+                    .setDescription(t.ping.result(roundtrip, gateway))
                     .setColor(color(Math.max(roundtrip, gateway)))],
             });
         } catch (err) {

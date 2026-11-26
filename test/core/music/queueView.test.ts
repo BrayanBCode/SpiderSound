@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { queuePage, queuePageCount, type QueueTrack } from "../../../src/core/music/queueView.js";
+import { es } from "../../../src/i18n/index.js";
 
 const song = (n: number, extra: Partial<QueueTrack> = {}): QueueTrack =>
     ({ title: `Canción ${n}`, author: "Artista", duration: 60_000, uri: `https://youtu.be/${n}`, ...extra });
@@ -12,7 +13,7 @@ describe("queueView", () => {
     });
 
     test("la página muestra lo que suena, numera desde la página y arma el pie", () => {
-        const page = queuePage({ current: song(0, { position: 130_000, duration: 355_000 }), tracks: queue(25), loop: "queue" }, 1);
+        const page = queuePage({ current: song(0, { position: 130_000, duration: 355_000 }), tracks: queue(25), loop: "queue" }, 1, es);
         expect(page.index).toBe(1);
         expect(page.description).toContain("▶ **Sonando:** [Canción 0](https://youtu.be/0) · Artista `02:10 / 05:55`");
         expect(page.description).toContain("`11.` [Canción 11](https://youtu.be/11) · Artista `01:00`");
@@ -21,18 +22,18 @@ describe("queueView", () => {
     });
 
     test("una página fuera de rango se lleva al borde", () => {
-        expect(queuePage({ tracks: queue(25), loop: "off" }, 99).index).toBe(2);
-        expect(queuePage({ tracks: queue(25), loop: "off" }, -1).index).toBe(0);
+        expect(queuePage({ tracks: queue(25), loop: "off" }, 99, es).index).toBe(2);
+        expect(queuePage({ tracks: queue(25), loop: "off" }, -1, es).index).toBe(0);
     });
 
     test("cola vacía con algo sonando lo avisa", () => {
-        const page = queuePage({ current: song(1), tracks: [], loop: "off" }, 0);
+        const page = queuePage({ current: song(1), tracks: [], loop: "off" }, 0, es);
         expect(page.description).toContain("No hay más canciones en la cola");
         expect(page.footer).toBe("Página 1/1 · 0 en cola (00:00) · Loop: OFF");
     });
 
     test("títulos largos se cortan, sin corchetes y sin enlace si la uri no es http", () => {
-        const page = queuePage({ tracks: [song(1, { title: `[Remix] ${"a".repeat(80)}`, uri: "local" })], loop: "off" }, 0);
+        const page = queuePage({ tracks: [song(1, { title: `[Remix] ${"a".repeat(80)}`, uri: "local" })], loop: "off" }, 0, es);
         const line = page.description.split("\n")[0];
         expect(line).not.toContain("[Remix]");
         expect(line).toContain("…**");
@@ -40,7 +41,7 @@ describe("queueView", () => {
     });
 
     test("título y artista largos no pasan de su largo máximo", () => {
-        const page = queuePage({ tracks: [song(1, { title: "x".repeat(80), author: "y".repeat(40) })], loop: "off" }, 0);
+        const page = queuePage({ tracks: [song(1, { title: "x".repeat(80), author: "y".repeat(40) })], loop: "off" }, 0, es);
         const line = page.description.split("\n")[0];
         expect(line).toContain(`${"x".repeat(31)}…`);
         expect(line).toContain(`${"y".repeat(17)}…`);
@@ -48,6 +49,6 @@ describe("queueView", () => {
     });
 
     test("en vivo no tiene duración", () => {
-        expect(queuePage({ tracks: [song(1, { isStream: true })], loop: "off" }, 0).description).toContain("`En vivo`");
+        expect(queuePage({ tracks: [song(1, { isStream: true })], loop: "off" }, 0, es).description).toContain("`En vivo`");
     });
 });

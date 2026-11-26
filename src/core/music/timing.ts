@@ -1,4 +1,5 @@
 // Cálculos de tiempo del reproductor, sin Discord ni Lavalink de por medio (se prueban en test/core/music/timing.test.ts)
+import type { Texts } from "../../i18n/index.js";
 
 /** Lo mínimo de una canción para calcular tiempos (sirve con los Track de moonlink.js) */
 export interface TimedTrack {
@@ -9,10 +10,8 @@ export interface TimedTrack {
 
 export type LoopMode = "off" | "track" | "queue" | string;
 
-const LOOP_LABELS: Record<string, string> = { off: "OFF", track: "Canción", queue: "Cola" };
-
 /** Cómo se muestra el modo de repetición (loop) */
-export const loopLabel = (loop: LoopMode) => LOOP_LABELS[loop] ?? loop;
+export const loopLabel = (loop: LoopMode, t: Texts) => t.loop.labels[loop] ?? loop;
 
 export const LOOP_MODES = ["off", "track", "queue"] as const;
 const LOOP_ICONS: Record<string, string> = { off: "▶️", track: "🔂", queue: "🔁" };
@@ -21,7 +20,7 @@ const LOOP_ICONS: Record<string, string> = { off: "▶️", track: "🔂", queue
 export const nextLoopMode = (loop: LoopMode) => LOOP_MODES[(LOOP_MODES.indexOf(loop as typeof LOOP_MODES[number]) + 1) % LOOP_MODES.length];
 
 /** Aviso al cambiar el loop: "🔂 Loop: **Canción**" */
-export const loopMessage = (loop: LoopMode) => `${LOOP_ICONS[loop] ?? "🔁"} Loop: **${loopLabel(loop)}**`;
+export const loopMessage = (loop: LoopMode, t: Texts) => t.loop.message(LOOP_ICONS[loop] ?? "🔁", loopLabel(loop, t));
 
 /** Cuánto le falta a la canción, en ms. `undefined` si es una transmisión en vivo */
 export function remainingMs(track: TimedTrack): number | undefined {

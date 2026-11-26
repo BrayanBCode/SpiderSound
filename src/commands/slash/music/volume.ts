@@ -1,4 +1,5 @@
 import { MessageFlags, PermissionFlagsBits } from "discord.js";
+import { es, textsFor } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 import { requireListener } from "../../../core/music/player.js";
@@ -7,10 +8,11 @@ import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("volume")
-    .setDescription("Cambia el volumen (1-100) o muestra el actual. Con predeterminado, el del servidor.")
+    .setDescription(es.commands.volume)
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
+            const t = await textsFor(client, inter.guildId);
             const level = inter.options.getInteger("nivel");
             const asDefault = inter.options.getBoolean("predeterminado") ?? false;
             const saved = await client.db.getGuildVolume(inter.guildId);
@@ -19,8 +21,8 @@ export default new SlashCommand()
             if (level === null) {
                 const player = client.getPlayer(inter.guildId);
                 const lines = [
-                    player ? `🔊 Volumen actual: **${player.volume}%**` : null,
-                    `Por defecto en este servidor: **${saved ?? DEFAULT_VOLUME}%**${saved === null ? " (el del bot)" : ""}`,
+                    player ? t.volume.current(player.volume) : null,
+                    t.volume.serverDefault(saved ?? DEFAULT_VOLUME, saved === null),
                 ].filter(Boolean);
                 return inter.reply({ embeds: [EmptyEmbed().setDescription(lines.join("\n")).setColor("Blue")], flags: MessageFlags.Ephemeral });
             }
@@ -29,7 +31,7 @@ export default new SlashCommand()
                 if (!inter.memberPermissions.has(PermissionFlagsBits.ManageGuild)) {
                     logger.info(`[/volume] ${inter.user.username} quiso cambiar el volumen por defecto sin permiso en ${inter.guild.name}`);
                     return inter.reply({
-                        embeds: [EmptyEmbed().setDescription("❌ | Solo quien puede **Gestionar el servidor** cambia el volumen por defecto.").setColor("Red")],
+                        embeds: [EmptyEmbed().setDescription(t.volume.noPermission).setColor("Red")],
                         flags: MessageFlags.Ephemeral,
                     });
                 }
@@ -44,7 +46,7 @@ export default new SlashCommand()
 
                 return inter.reply({
                     embeds: [EmptyEmbed()
-                        .setDescription(`🔊 Volumen por defecto del servidor: **${level}%**${applyNow ? " (también ahora)" : ""}\n-# Se usa cada vez que el bot empieza a reproducir.`)
+                        .setDescription(t.volume.defaultSet(level, applyNow))
                         .setColor("Green")],
                 });
             }
@@ -58,18 +60,18 @@ export default new SlashCommand()
 
             return inter.reply({
                 embeds: [EmptyEmbed()
-                    .setDescription(`🔊 Volumen: **${level}%**\n-# Vuelve a ${saved ?? DEFAULT_VOLUME}% cuando el bot se desconecta. Para cambiar ese, usá \`predeterminado\`.`)
+                    .setDescription(t.volume.set(level, saved ?? DEFAULT_VOLUME))
                     .setColor("Green")],
             });
         }
     )
     .addIntegerOption(o => o
         .setName("nivel")
-        .setDescription("Volumen de 1 a 100. Sin elegir, muestra el actual.")
+        .setDescription(es.commands.volumeLevel)
         .setMinValue(1)
         .setMaxValue(100)
         .setRequired(false))
     .addBooleanOption(o => o
         .setName("predeterminado")
-        .setDescription("Guardarlo como volumen por defecto del servidor (requiere Gestionar el servidor).")
+        .setDescription(es.commands.volumeDefault)
         .setRequired(false))

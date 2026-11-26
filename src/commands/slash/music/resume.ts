@@ -1,14 +1,16 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
+import { es, textsFor } from "../../../i18n/index.js";
 import { deleteAfterTimer, EmptyEmbed, replyEmbed } from "../../../utils/messages.js";
 import { requireListener } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("resume")
-    .setDescription("Reanuda la canción pausada.")
+    .setDescription(es.commands.resume)
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
+            const t = await textsFor(client, inter.guildId);
             const player = await requireListener(client, inter);
             if (!player) return;
 
@@ -16,9 +18,7 @@ export default new SlashCommand()
                 return deleteAfterTimer(await replyEmbed({
                     interaction: inter,
                     embed: EmptyEmbed()
-                        .setDescription(player.current
-                            ? "▶️ | La reproducción no está en pausa."
-                            : "❌ | No hay ninguna canción reproduciéndose.")
+                        .setDescription(player.current ? t.resume.notPaused : t.common.nothingPlaying)
                         .setColor(player.current ? "Yellow" : "Red"),
                     ephemeral: true,
                 }), 15000);
@@ -29,8 +29,8 @@ export default new SlashCommand()
             deleteAfterTimer(await replyEmbed({
                 interaction: inter,
                 embed: EmptyEmbed()
-                    .setAuthor({ name: "▶️ | Reanudar", iconURL: inter.user.displayAvatarURL() })
-                    .setDescription("La reproducción continúa.")
+                    .setAuthor({ name: t.resume.author, iconURL: inter.user.displayAvatarURL() })
+                    .setDescription(t.resume.done)
                     .setColor("Green")
             }), 5000);
         })

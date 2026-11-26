@@ -1,43 +1,19 @@
+import { ColorResolvable } from "discord.js";
 import { interactionCommandType } from "../../types/types/interactionCommandType.js";
 import { EmptyEmbed, replyEmbed } from "../../utils/messages.js";
+import type { BClient } from "../client/BClient.js";
+import { textsFor, type Texts } from "../../i18n/index.js";
 
-
-export async function warnNoChannelAcces(inter: interactionCommandType) {
-    return await replyEmbed({
-        interaction: inter,
-        embed: EmptyEmbed({ description: "No puedo unirme o reproducir en este canal" }),
-        ephemeral: true
-    })
+/** Aviso efímero de los chequeos de voz, en el idioma del servidor */
+async function warn(inter: interactionCommandType, text: (t: Texts) => string, color?: ColorResolvable) {
+    const t = await textsFor(inter.client as BClient, inter.guildId);
+    const embed = EmptyEmbed({ description: text(t) });
+    if (color) embed.setColor(color);
+    return replyEmbed({ interaction: inter, embed, ephemeral: true });
 }
 
-export async function warnJoinToVC(inter: interactionCommandType) {
-    return await replyEmbed({
-        interaction: inter,
-        embed: EmptyEmbed({ description: "Unete a un canal de voz" }).setColor("Yellow"),
-        ephemeral: true
-    });
-}
-
-export async function warnNothingFound(inter: interactionCommandType) {
-    return await replyEmbed({
-        interaction: inter,
-        embed: EmptyEmbed({ description: "No se encontraron resultados" }).setColor("Yellow"),
-        ephemeral: true
-    })
-}
-
-export async function warnJoinToVCBut(inter: interactionCommandType) {
-    return await replyEmbed({
-        interaction: inter,
-        embed: EmptyEmbed({ description: "Te uniste al canal de voz, pero vuelve a ejecutar el comando, por favor.." }).setColor('Yellow'),
-        ephemeral: true
-    })
-}
-
-export async function warnNeedSameVC(inter: interactionCommandType) {
-    return await replyEmbed({
-        interaction: inter,
-        embed: EmptyEmbed({ description: "Necesitas estar en el mismo canal que yo para agregar/reproducir " }).setColor("Yellow"),
-        ephemeral: true
-    })
-}
+export const warnNoChannelAcces = (inter: interactionCommandType) => warn(inter, t => t.voice.noChannelAccess);
+export const warnJoinToVC = (inter: interactionCommandType) => warn(inter, t => t.voice.joinVC, "Yellow");
+export const warnNothingFound = (inter: interactionCommandType) => warn(inter, t => t.play.noResults, "Yellow");
+export const warnJoinToVCBut = (inter: interactionCommandType) => warn(inter, t => t.voice.joinedRetry, "Yellow");
+export const warnNeedSameVC = (inter: interactionCommandType) => warn(inter, t => t.voice.needSameVC, "Yellow");

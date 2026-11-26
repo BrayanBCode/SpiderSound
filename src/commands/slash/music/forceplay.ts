@@ -1,4 +1,5 @@
 import { Player, Track } from "moonlink.js";
+import { es } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import { PlaybackStrategy } from "../../../core/strategy/PlaybackStrategy.js";
 import logger from "../../../core/client/logger.js";
@@ -23,7 +24,7 @@ const forcePlay = new Forceplay()
 
 export default new SlashCommand()
     .setName("forceplay")
-    .setDescription("Reproduce una canción ya, cortando la que suena (la cola sigue igual).")
+    .setDescription(es.commands.forceplay)
     .setCategory("Music")
     .setExecute(async (client, inter) => {
         try {
@@ -42,7 +43,7 @@ export default new SlashCommand()
     .addStringOption(
         o => o
             .setName("busqueda")
-            .setDescription("Escribe el nombre de la canción, artista o pega un enlace directo.")
+            .setDescription(es.commands.search)
             .setAutocomplete(true)
             .setRequired(true))
 

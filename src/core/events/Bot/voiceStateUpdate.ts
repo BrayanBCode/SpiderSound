@@ -1,4 +1,5 @@
 import { TextChannel, VoiceState } from "discord.js";
+import { textsFor } from "../../../i18n/index.js";
 import { DEvent } from "../../classes/events/DEvent.js";
 import { BClient } from "../../client/BClient.js";
 import logger from "../../client/logger.js";
@@ -101,12 +102,12 @@ export function startInactivityTimer(client: BClient, guildId: string, reason: s
         logger.info(`[InactivityTimer] El bot se desconecta de ${guildName} por inactividad (${expiredReason})`);
         player.destroy("inactivity");
 
-        (client.getTextChannel(player.textChannelId) as TextChannel)?.send({
+        textsFor(client, guildId).then(t => (client.getTextChannel(player.textChannelId) as TextChannel)?.send({
             embeds: [
                 EmptyEmbed()
-                    .setDescription("👌 Me he desconectado del canal de voz por inactividad.")
+                    .setDescription(t.player.inactivity)
             ]
-        }).catch(err => logger.error("[InactivityTimer] Error enviando mensaje de desconexión por inactividad:", err));
+        })).catch(err => logger.error("[InactivityTimer] Error enviando mensaje de desconexión por inactividad:", err));
     }, delayMs);
 
     InactivityManager.set(guildId, timeout);

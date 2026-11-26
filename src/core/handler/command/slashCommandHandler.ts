@@ -1,4 +1,5 @@
 import { REST, Routes } from "discord.js";
+import { config } from "../../config.js";
 import { readdirSync } from "fs";
 import { join } from "path";
 import { BClient } from "../../client/BClient.js";
@@ -43,7 +44,7 @@ export async function registerSlashCommands(client: BClient) {
     const commandsArray = Array.from(client.slashCommands.values()).map(cmd => cmd.toJSON());
 
     await rest.put(
-        Routes.applicationCommands(process.env.botClientID as string),
+        Routes.applicationCommands(config.discord.clientId),
         { body: commandsArray }
     );
     logger.info(`[SlashCommands] ${commandsArray.length} comandos registrados en Discord: ${commandsArray.map(c => c.name).join(", ")}`);

@@ -8,6 +8,8 @@ plugins/*.jar
 # configuración con secretos: usar .env.example y application.example.yml como base
 .env
 application.yml
+# configuración local (no secreta): usar config/config.example.yml como base
+config/config.yml
 # base de datos local
 data/
 /graphify-out

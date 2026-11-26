@@ -1,4 +1,5 @@
 import { APIChannel, ChannelType, Client, EmbedBuilder, OverwriteType, PermissionFlagsBits, Routes } from "discord.js";
+import { config } from "../config.js";
 import logger from "./logger.js";
 import { createCooldown } from "../../utils/tools.js";
 
@@ -15,7 +16,7 @@ const allow = createCooldown(60_000);
 /** Se llama al arrancar el shard; sin DEV_GUILD_ID los avisos quedan apagados */
 export function initDevNotifier(c: Client) {
     client = c;
-    if (!process.env.DEV_GUILD_ID) logger.info("[Notificaciones] Sin DEV_GUILD_ID en el .env: no se mandan avisos al servidor del dev");
+    if (!config.discord.devGuildId) logger.info("[Notificaciones] Sin discord.devGuildId en config/config.yml: no se mandan avisos al servidor del dev");
 }
 
 /** Canal privado: oculto para @everyone; lo ven el dueño del bot (ownerID) y el bot. Los administradores lo ven igual (Discord) */
@@ -26,7 +27,7 @@ function privateOverwrites(c: Client, guildId: string) {
         { id: guildId, type: OverwriteType.Role, deny: String(PermissionFlagsBits.ViewChannel) },
         { id: c.user!.id, type: OverwriteType.Member, allow: String(view | PermissionFlagsBits.SendMessages | PermissionFlagsBits.EmbedLinks) },
     ];
-    const ownerId = process.env.ownerID;
+    const ownerId = config.discord.ownerId;
     if (ownerId) overwrites.push({ id: ownerId, type: OverwriteType.Member, allow: String(view) });
     return overwrites;
 }
@@ -61,7 +62,7 @@ async function resolveChannel(c: Client, guildId: string): Promise<string | unde
  * (para que un error en bucle no llene el canal). Nunca lanza: si falla, solo queda en el log.
  */
 export async function notifyDev(embed: EmbedBuilder, key?: string): Promise<void> {
-    const guildId = process.env.DEV_GUILD_ID;
+    const guildId = config.discord.devGuildId;
     if (!client || !guildId || !client.isReady()) return;
     if (key && !allow(key)) return;
 

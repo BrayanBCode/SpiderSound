@@ -13,6 +13,9 @@ rem Si falta uno, "docker compose up" crea una carpeta vacía con su nombre (Doc
 call :check_file .env .env.example || goto :end
 call :check_file application.yml application.example.yml || goto :end
 
+rem config\config.yml (desde v3.6.0) no es obligatorio: sin él, el bot usa los valores viejos del .env
+if not exist "config\config.yml" echo [Update] AVISO: no hay config\config.yml, se usa lo que tenga el .env. Para pasarte al archivo nuevo: copy config\config.example.yml config\config.yml y completalo
+
 rem Bajado como ZIP no hay repo: se explica cómo convertirlo una vez, sin tocar la carpeta sin permiso
 if exist .git goto :has_git
 echo [Update] Esta carpeta no es un clon de git (¿la bajaste como ZIP?): el script necesita git para saber qué versión tenés y bajar la nueva.
@@ -52,10 +55,10 @@ if "%OLD_COMMIT%"=="%NEW_COMMIT%" (
     echo [Update] Código actualizado: v%OLD_VERSION% -^> v%NEW_VERSION%
     git --no-pager log --oneline -n 15 %OLD_COMMIT%..%NEW_COMMIT%
     rem Configuración nueva: las copias propias, .env y application.yml, no se actualizan solas
-    git diff --quiet %OLD_COMMIT% %NEW_COMMIT% -- .env.example application.example.yml
+    git diff --quiet %OLD_COMMIT% %NEW_COMMIT% -- .env.example application.example.yml config/config.example.yml
     if errorlevel 1 (
-        echo [Update] AVISO: cambiaron .env.example o application.example.yml. Comparalos con tu .env y application.yml por si hay opciones nuevas:
-        git --no-pager diff --stat %OLD_COMMIT% %NEW_COMMIT% -- .env.example application.example.yml
+        echo [Update] AVISO: cambiaron .env.example, application.example.yml o config/config.example.yml. Comparalos con tus copias por si hay opciones nuevas:
+        git --no-pager diff --stat %OLD_COMMIT% %NEW_COMMIT% -- .env.example application.example.yml config/config.example.yml
     )
 )
 

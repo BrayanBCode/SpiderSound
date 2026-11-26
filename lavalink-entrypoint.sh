@@ -1,12 +1,18 @@
 #!/bin/sh
-# Entrypoint de Lavalink: elige la versión del plugin de YouTube según YOUTUBE_PLUGIN_CHANNEL (release|dev)
+# Entrypoint de Lavalink: elige la versión del plugin de YouTube según el canal (release|dev)
 # y la pasa por YOUTUBE_PLUGIN_VERSION / YOUTUBE_PLUGIN_SNAPSHOT, que application.yml usa como ${...}.
+# El canal sale de YOUTUBE_PLUGIN_CHANNEL (nombre viejo, en el .env) o, si no está, de lavalink.youtubePluginChannel en config/config.yml.
 # Si no hay canal o maven.lavalink.dev no responde, quedan los valores por defecto de application.yml.
 
 log() { echo "[YouTubePlugin] $*"; }
 
 # versión fija de application.yml (el valor por defecto del ${YOUTUBE_PLUGIN_VERSION:...} o la versión escrita a mano)
 fixed=$(sed -n "s/.*youtube-plugin:\(\${YOUTUBE_PLUGIN_VERSION:\)\{0,1\}\([^}'\"]*\).*/\2/p" application.yml | head -n 1)
+
+# Solo letras: el valor sale de un archivo que edita el usuario
+if [ -z "$YOUTUBE_PLUGIN_CHANNEL" ] && [ -f config/config.yml ]; then
+    YOUTUBE_PLUGIN_CHANNEL=$(sed -n 's/^ *youtubePluginChannel: *["'"'"']\{0,1\}\([A-Za-z]*\).*/\1/p' config/config.yml | head -n 1)
+fi
 
 case "$YOUTUBE_PLUGIN_CHANNEL" in
     release) repo=releases tag=release snapshot=false ;;

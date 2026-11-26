@@ -25,6 +25,9 @@ for f in .env application.yml; do
     [ -f "$f" ] || fail "falta $f. Copiá $example a $f y completalo (ver la guía: https://spidersound.netlify.app/autoalojar)"
 done
 
+# config/config.yml (desde v3.6.0) no es obligatorio: sin él, el bot usa los valores viejos del .env
+[ -f config/config.yml ] || log "AVISO: no hay config/config.yml, se usa lo que tenga el .env. Para pasarte al archivo nuevo: cp config/config.example.yml config/config.yml y completalo"
+
 # Bajado como ZIP no hay repo: se explica cómo convertirlo una vez, sin tocar la carpeta sin permiso
 if [ ! -e .git ]; then
     log "Esta carpeta no es un clon de git (¿la bajaste como ZIP?): el script necesita git para saber qué versión tenés y bajar la nueva."
@@ -58,9 +61,9 @@ else
     log "Código actualizado: v$old_version -> v$(version)"
     git log --oneline "$old_commit..$new_commit" | head -n 15
     # Configuración nueva: las copias propias (.env, application.yml) no se actualizan solas
-    if ! git diff --quiet "$old_commit" "$new_commit" -- .env.example application.example.yml; then
-        log "AVISO: cambiaron .env.example o application.example.yml. Comparalos con tu .env y application.yml por si hay opciones nuevas:"
-        git diff --stat "$old_commit" "$new_commit" -- .env.example application.example.yml
+    if ! git diff --quiet "$old_commit" "$new_commit" -- .env.example application.example.yml config/config.example.yml; then
+        log "AVISO: cambiaron .env.example, application.example.yml o config/config.example.yml. Comparalos con tus copias por si hay opciones nuevas:"
+        git diff --stat "$old_commit" "$new_commit" -- .env.example application.example.yml config/config.example.yml
     fi
 fi
 

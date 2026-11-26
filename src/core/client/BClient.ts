@@ -1,4 +1,5 @@
 import { AutocompleteInteraction, CacheType, ChatInputCommandInteraction, Client, GatewayIntentBits, VoiceChannel } from "discord.js";
+import { config } from "../config.js";
 import { Manager } from "moonlink.js";
 import logger from "./logger.js";
 import { loadDiscordEvents } from "../handler/Events/discordEventHandler.js";
@@ -105,16 +106,16 @@ export class BClient extends Client {
     }
 
     private createLavalinkConnection() {
-        // Defaults = el servicio "lavalink" de docker-compose; fuera de Docker se usa lo del .env
+        // Host, puerto y wss salen de config/config.yml (en Docker, docker-compose fija el host "lavalink"); la contraseña, del .env
         const password = process.env.lavalinkPassword;
         if (!password) throw new Error("Falta lavalinkPassword en el .env (tiene que ser igual a server.password de application.yml)");
 
         const node = {
             identifier: "SpiderSound",
-            host: process.env.lavalinkHost ?? "lavalink",
+            host: config.lavalink.host,
             password,
-            port: Number(process.env.lavalinkPort ?? 2333),
-            secure: process.env.lavalinkSecure === "true",
+            port: config.lavalink.port,
+            secure: config.lavalink.secure,
         };
         logger.info(`[Lavalink] Nodo ${node.identifier} -> ${node.secure ? "wss" : "ws"}://${node.host}:${node.port}`);
 

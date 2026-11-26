@@ -1,0 +1,25 @@
+# Configuración de Araña Sound que no es secreta. Copiar a config/config.yml y completar.
+# Los secretos (token, contraseñas, DATABASE_URL) van en el .env, no acá.
+# Si una de estas opciones también está en el .env con su nombre viejo (botClientID, ownerID, DEV_GUILD_ID,
+# lavalinkHost, lavalinkPort, lavalinkSecure, YOUTUBE_PLUGIN_CHANNEL), gana la del .env.
+
+discord:
+  # Developer Portal → tu app → General Information → Application ID
+  clientId: ""
+  # Tu ID de usuario de Discord (clic derecho en tu nombre → Copiar ID, con el modo desarrollador activado)
+  ownerId: ""
+  # Servidor del desarrollador (clic derecho en el servidor → Copiar ID).
+  # El bot crea ahí #notificaciones-bot y avisa arranques, servidores nuevos, errores y caídas de Lavalink.
+  # El canal queda privado (solo ownerId y administradores). Necesita Gestionar canales en ese servidor.
+  # Vacío = sin avisos.
+  devGuildId: ""
+
+lavalink:
+  # Dentro de Docker el host lo fija docker-compose ("lavalink"); localhost sirve para correr el bot fuera de Docker
+  host: localhost
+  port: 2333
+  secure: false
+  # Versión del plugin de YouTube, resuelta al arrancar desde maven.lavalink.dev:
+  # "release" = última release estable, "dev" = último snapshot (rama de desarrollo).
+  # Vacío = la versión fija de application.yml.
+  youtubePluginChannel: dev

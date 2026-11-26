@@ -142,11 +142,12 @@ Lo que vaya surgiendo de las etapas anteriores. Anotarlo acá a medida que apare
 
 **Objetivo:** que cada servidor pueda usar el bot en inglés. Hoy todos los textos están en español y escritos en el código.
 
-- [ ] Juntar los textos del bot en un solo lugar por idioma (respuestas, avisos, embeds del reproductor y de la cola, errores) en vez de tenerlos repartidos en cada comando.
+- [x] Juntar los textos del bot en un solo lugar por idioma (respuestas, avisos, embeds del reproductor y de la cola, errores) en vez de tenerlos repartidos en cada comando (2026-11-26): `src/i18n/es.ts` tiene todo lo que ve el usuario, agrupado por área (reproductor, cola, playlists…); los textos con datos son funciones, ej. `t.common.noTrackAt(3)`. Cada comando pide los de su servidor con `await textsFor(client, guildId)` (por ahora siempre español). Los logs y los avisos a `#notificaciones-bot` siguen en español por ahora (ver el punto de los logs, más abajo). El estado del bot ("Escuchando /play · N servidores") tampoco se traduce: es uno solo para todos los servidores.
 - [ ] Versión en inglés de todos esos textos.
 - [ ] Nombres, descripciones y opciones de los comandos en inglés con las localizaciones de Discord (`setNameLocalizations` / `setDescriptionLocalizations`): cada usuario los ve en el idioma de su Discord.
-- [ ] Elegir el idioma de las respuestas: por defecto el del servidor (`guild.preferredLocale`), con un comando para cambiarlo, guardado en `data/bot.db`.
+- [ ] Elegir el idioma de las respuestas: por defecto el del servidor (`guild.preferredLocale`: español si empieza con `es`, si no inglés), con `/language` (requiere Gestionar el servidor) para cambiarlo, guardado en `guild_settings` (la misma tabla del volumen, así también queda en la base compartida). Ojo: Discord pone `en-US` en todo servidor que no sea "Comunidad", así que muchos servidores en español arrancarían en inglés. Por eso, al entrar a un servidor nuevo el bot manda un aviso en los dos idiomas explicando cómo cambiarlo con `/language` (decidido 2026-11-26).
 - [ ] README en inglés (o un `README.en.md`) y la web con versión en inglés.
+- [ ] Logs y avisos a `#notificaciones-bot` en inglés: los lee quien hospeda su propia copia del bot, que puede no hablar español. Idioma elegido en el `.env` (no por servidor: es uno solo para toda la instancia), español por defecto. Los mensajes de los logs pasan a un archivo de textos como `src/i18n/`; el prefijo `[Contexto]` queda igual en los dos idiomas para poder buscarlo (pedido 2026-11-26).
 
 ---
 

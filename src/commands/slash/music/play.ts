@@ -1,4 +1,5 @@
 import logger from "../../../core/client/logger.js"
+import { es } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js"
 import { PlaybackStrategy } from "../../../core/strategy/PlaybackStrategy.js"
 
@@ -10,7 +11,7 @@ const play = new Play()
 
 export default new SlashCommand()
     .setName("play")
-    .setDescription("Reproduce o agrega a la cola una canción, álbum o playlist (búsqueda o enlace de YouTube o Spotify).")
+    .setDescription(es.commands.play)
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
@@ -34,6 +35,6 @@ export default new SlashCommand()
     .addStringOption(
         o => o
             .setName("busqueda")
-            .setDescription("Escribe el nombre de la canción, artista o pega un enlace directo.")
+            .setDescription(es.commands.search)
             .setAutocomplete(true)
             .setRequired(true))

@@ -1,14 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { discordRelative, loopLabel, loopMessage, nextLoopMode, remainingMs, startsInMs, totalDuration, youtubeCover } from "../../../src/core/music/timing.js";
+import { es } from "../../../src/i18n/index.js";
 
 const song = (duration: number, position = 0) => ({ duration, position });
 const live = { duration: 0, isStream: true };
 
 describe("timing", () => {
     test("loopLabel traduce los modos de moonlink", () => {
-        expect(loopLabel("off")).toBe("OFF");
-        expect(loopLabel("track")).toBe("Canción");
-        expect(loopLabel("queue")).toBe("Cola");
+        expect(loopLabel("off", es)).toBe("OFF");
+        expect(loopLabel("track", es)).toBe("Canción");
+        expect(loopLabel("queue", es)).toBe("Cola");
     });
 
     test("nextLoopMode rota OFF → Canción → Cola → OFF y loopMessage lo anuncia", () => {
@@ -16,8 +17,8 @@ describe("timing", () => {
         expect(nextLoopMode("track")).toBe("queue");
         expect(nextLoopMode("queue")).toBe("off");
         expect(nextLoopMode("raro")).toBe("off");
-        expect(loopMessage("track")).toBe("🔂 Loop: **Canción**");
-        expect(loopMessage("off")).toBe("▶️ Loop: **OFF**");
+        expect(loopMessage("track", es)).toBe("🔂 Loop: **Canción**");
+        expect(loopMessage("off", es)).toBe("▶️ Loop: **OFF**");
     });
 
     test("remainingMs descuenta lo escuchado y no tiene fin en vivo", () => {

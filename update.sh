@@ -12,6 +12,19 @@ version() { sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' package.json | head -n 1
 command -v git >/dev/null 2>&1 || fail "no se encontró git"
 command -v docker >/dev/null 2>&1 || fail "no se encontró docker"
 
+# Si falta uno, "docker compose up" crea una carpeta vacía con su nombre (Docker Desktop lo hace aunque se le ponga create_host_path: false)
+for f in .env application.yml; do
+    example=$([ "$f" = .env ] && echo .env.example || echo application.example.yml)
+    if [ -d "$f" ]; then
+        log "$f es una carpeta: la creó Docker al arrancar sin el archivo. Para arreglarlo:"
+        echo "    docker compose down"
+        echo "    rm -r $f"
+        echo "    cp $example $f   (y completalo)"
+        fail "$f es una carpeta, no un archivo"
+    fi
+    [ -f "$f" ] || fail "falta $f. Copiá $example a $f y completalo (ver la guía: https://spidersound.netlify.app/autoalojar)"
+done
+
 # Bajado como ZIP no hay repo: se explica cómo convertirlo una vez, sin tocar la carpeta sin permiso
 if [ ! -e .git ]; then
     log "Esta carpeta no es un clon de git (¿la bajaste como ZIP?): el script necesita git para saber qué versión tenés y bajar la nueva."

@@ -9,6 +9,10 @@ cd /d "%~dp0"
 where git >nul 2>&1 || (call :fail "no se encontró git" & goto :end)
 where docker >nul 2>&1 || (call :fail "no se encontró docker" & goto :end)
 
+rem Si falta uno, "docker compose up" crea una carpeta vacía con su nombre (Docker Desktop lo hace aunque se le ponga create_host_path: false)
+call :check_file .env .env.example || goto :end
+call :check_file application.yml application.example.yml || goto :end
+
 rem Bajado como ZIP no hay repo: se explica cómo convertirlo una vez, sin tocar la carpeta sin permiso
 if exist .git goto :has_git
 echo [Update] Esta carpeta no es un clon de git (¿la bajaste como ZIP?): el script necesita git para saber qué versión tenés y bajar la nueva.
@@ -96,6 +100,22 @@ for /f "tokens=2 delims=:, " %%v in ('findstr /c:"\"version\"" package.json') do
     goto :eof
 )
 goto :eof
+
+:check_file
+rem %1 = archivo, %2 = su ejemplo. "archivo\" solo existe si es una carpeta
+if exist "%~1\" (
+    echo [Update] %~1 es una carpeta: la creó Docker al arrancar sin el archivo. Para arreglarlo:
+    echo     docker compose down
+    echo     rmdir /s /q %~1
+    echo     copy %~2 %~1   ^(y completalo^)
+    call :fail "%~1 es una carpeta, no un archivo"
+    exit /b 1
+)
+if not exist "%~1" (
+    call :fail "falta %~1. Copiá %~2 a %~1 y completalo, ver la guía: https://spidersound.netlify.app/autoalojar"
+    exit /b 1
+)
+exit /b 0
 
 :fail
 echo [Update] ERROR: %~1 1>&2

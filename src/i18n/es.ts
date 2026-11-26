@@ -1,0 +1,316 @@
+// Textos que ve el usuario, en español. Los logs no van acá (por ahora siguen en español, ver ROADMAP etapa 10).
+// en.ts tiene que tener la misma forma (TypeScript avisa si falta algo).
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+const es = {
+    /** Usados en varios lugares */
+    common: {
+        unknown: "Desconocido",
+        live: "En vivo",
+        untitled: "Sin título",
+        requestedBy: (name: string) => `Pedido por ${name}`,
+        artist: "Artista",
+        duration: "Duración",
+        title: "Título",
+        noPlayer: "❌ | No hay nada reproduciéndose.",
+        notListener: "❌ | Debes estar en el canal de voz del bot para usar este comando.",
+        nothingPlaying: "❌ | No hay ninguna canción reproduciéndose.",
+        emptyQueue: "❌ | No hay canciones en la lista de reproducción.",
+        noTrackAt: (pos: number) => `❌ | No hay ninguna canción en la posición ${pos}.`,
+        needTwoToShuffle: "❌ | Hacen falta al menos 2 canciones en la cola para mezclar.",
+        tracks: (n: number) => plural(n, "canción", "canciones"),
+        emptyQueueOption: "Lista de reproducción vacía",
+    },
+
+    /** Chequeos de canal de voz antes de reproducir */
+    voice: {
+        noChannelAccess: "No puedo unirme o reproducir en este canal",
+        joinVC: "Unete a un canal de voz",
+        joinedRetry: "Te uniste al canal de voz, pero vuelve a ejecutar el comando, por favor..",
+        needSameVC: "Necesitas estar en el mismo canal que yo para agregar/reproducir",
+    },
+
+    loop: {
+        labels: { off: "OFF", track: "Canción", queue: "Cola" } as Record<string, string>,
+        choices: { off: "OFF (no repetir)", track: "Canción actual", queue: "Toda la cola" },
+        message: (icon: string, label: string) => `${icon} Loop: **${label}**`,
+    },
+
+    /** /play, /playnext, /forceplay */
+    play: {
+        noResults: "No se encontraron resultados",
+        spotifyFailed: "No se pudo cargar eso de Spotify. Si es una playlist, fijate que sea pública: las privadas y las armadas para tu cuenta (Daily Mix, Descubrimiento semanal) no se pueden leer.",
+        error: "❌ Ocurrió un error al reproducir, intenta de nuevo.",
+        headers: {
+            queue: { track: "Agregada a la cola 🎧", playlist: "Playlist agregada a la cola 🎧" },
+            next: { track: "Suena después de la actual ⏭️", playlist: "Playlist después de la actual ⏭️" },
+            now: { track: "Sonando ahora 🎶", playlist: "Playlist sonando ahora 🎶" },
+            idle: { track: "Sonando ahora 🎶", playlist: "Playlist sonando ahora 🎶" },
+        },
+        playlistFallback: "Playlist",
+        andMore: (n: number) => `…y ${n} más`,
+        playlistSummary: (n: number, total: string) => `**${n}** canciones · ${total} en total`,
+        spotifyLimit: (max: number) => `\n-# De Spotify se cargan las primeras ${max}`,
+        startsWith: "Empieza con",
+        playlistFooter: (name: string, queued: number) => `Pedido por ${name} · ${queued} en cola`,
+        position: "Posición",
+        startsAt: "Suena",
+        approx: (when: string) => `${when} aprox.`,
+        suggest: {
+            joinVC: "Debes unirte a un canal de voz para buscar canciones",
+            sameVC: "Debes unirte al mismo canal de voz que el bot",
+            spotify: (type: string) => `Spotify (${type}): se carga al enviar, puede tardar unos segundos`,
+            playlist: (n: number, name: string) => `Playlist [${n} Tracks] - ${name}`,
+            unknownPlaylist: "Playlist desconocida",
+        },
+    },
+
+    skip: {
+        jumped: (pos: number) => `Saltó a la posición ${pos} ⏭️`,
+        next: "Siguiente canción ⏭️",
+    },
+    move: {
+        emptyQueue: "❌ | No hay canciones en la cola.",
+        samePosition: "❌ | La canción ya está en esa posición.",
+        range: (size: number) => `❌ | Las posiciones van de 1 a ${size}.`,
+        moved: "Canción movida ↕️",
+        detail: (from: number, to: number) => `\nPosición **${from}** → **${to}**`,
+    },
+    remove: {
+        removed: "🗑️ | Canción eliminada",
+        requestedBy: (tag: string) => `Solicitado por: ${tag}`,
+    },
+    clear: {
+        author: "🗑️ | Limpiar lista de reproducción",
+        done: "La lista de reproducción ha sido limpiada.",
+    },
+    pause: {
+        alreadyPaused: "⏸️ | La reproducción ya está en pausa. Usa /resume para continuar.",
+        author: "⏸️ | Pausa",
+        done: "La canción actual fue pausada. Usa /resume para continuar.",
+    },
+    resume: {
+        notPaused: "▶️ | La reproducción no está en pausa.",
+        author: "▶️ | Reanudar",
+        done: "La reproducción continúa.",
+    },
+    stop: {
+        author: "⏹️ | Detener",
+        done: "La reproducción se ha detenido y la lista de reproducción se ha limpiado.",
+    },
+    seek: {
+        forward: (s: number) => `✅ | Avanzado la canción ${s} segundos.`,
+        backward: (s: number) => `✅ | Retrocedido la canción ${s} segundos.`,
+    },
+    shuffle: {
+        done: (n: number) => `🔀 Cola mezclada (${n} canciones)`,
+    },
+    volume: {
+        current: (v: number) => `🔊 Volumen actual: **${v}%**`,
+        serverDefault: (v: number, isBotDefault: boolean) => `Por defecto en este servidor: **${v}%**${isBotDefault ? " (el del bot)" : ""}`,
+        noPermission: "❌ | Solo quien puede **Gestionar el servidor** cambia el volumen por defecto.",
+        defaultSet: (v: number, alsoNow: boolean) => `🔊 Volumen por defecto del servidor: **${v}%**${alsoNow ? " (también ahora)" : ""}\n-# Se usa cada vez que el bot empieza a reproducir.`,
+        set: (v: number, back: number) => `🔊 Volumen: **${v}%**\n-# Vuelve a ${back}% cuando el bot se desconecta. Para cambiar ese, usá \`predeterminado\`.`,
+    },
+    language: {
+        names: { es: "español", en: "inglés" } as Record<string, string>,
+        current: (name: string, chosen: boolean) =>
+            `🌐 Idioma del bot en este servidor: **${name}**${chosen ? "" : " (el de Discord del servidor, nadie lo eligió todavía)"}`,
+        noPermission: "❌ | Solo quien puede **Gestionar el servidor** cambia el idioma del bot.",
+        set: (name: string) => `🌐 Listo: en este servidor el bot ahora responde en **${name}**.`,
+        saveError: "❌ | No se pudo guardar el idioma, probá de nuevo en un rato.",
+        /** Va en el aviso al entrar a un servidor, junto con el mismo texto en inglés */
+        notice: (name: string) => `🇪🇸 Voy a responder en **${name}**, el idioma de Discord de este servidor. Para cambiarlo: \`/idioma\` (hace falta Gestionar el servidor).`,
+    },
+    ping: {
+        measuring: "🏓 Midiendo…",
+        result: (roundtrip: number, gateway: number) =>
+            `🏓 **Pong!**\nRespuesta: **${roundtrip} ms**\nConexión con Discord: **${gateway >= 0 ? `${gateway} ms` : "midiendo…"}**`,
+    },
+    help: {
+        sections: {
+            playback: "▶️ Reproducción",
+            queue: "📃 Cola",
+            control: "🎛️ Control",
+            saved: "❤️ Favoritos y playlists",
+            others: "✨ Otros",
+        },
+        author: "Comandos de Araña Sound 🕷️",
+        footer: "También podés usar los botones del mensaje del reproductor.",
+    },
+
+    /** /queue y botón 📜 */
+    queue: {
+        empty: "La lista de reproducción está vacía, utiliza /play para agregar canciones.",
+        author: "Cola de reproducción 📜",
+        nowPlaying: "▶ **Sonando:**",
+        noMore: "No hay más canciones en la cola. Usá /play para agregar.",
+        footer: (page: number, pages: number, size: number, total: string, loop: string) =>
+            `Página ${page}/${pages} · ${size} en cola (${total}) · Loop: ${loop}`,
+    },
+
+    /** Mensaje "Escuchando" y sus botones */
+    player: {
+        playing: "Escuchando 🎶",
+        paused: "En pausa ⏸️",
+        untitled: "Titulo desconocido",
+        at: (time: string) => `• Va por: \`${time}\``,
+        ends: (when: string) => `• Termina: ${when}`,
+        loopVolume: (loop: string, volume: number) => `• Loop: \`${loop}\` · Volumen: \`${volume}%\``,
+        next: (label: string) => `• Siguiente: ${label}`,
+        footer: (name: string, queued: number, total: string) => `Pedido por ${name} · ${queued} en cola (${total})`,
+        nextSameTrack: "Esta misma (repetición de canción)",
+        nextSameQueue: "Esta misma (repetición de cola)",
+        nextNothing: "Nada, la cola está vacía",
+        notListener: "❌ | Tienes que estar en el canal de voz del bot para usar este botón.",
+        playingPrevious: (title: string) => `Reproduciendo: **${title}**`,
+        previousFallback: "canción anterior",
+        noPrevious: "❌ No hay una canción anterior",
+        resumed: "▶️ Reproducción reanudada",
+        pausedNow: "⏸️ Reproducción en pausa",
+        notEnough: "❌ No hay suficientes canciones en la lista",
+        skipped: "⏭️ Canción saltada",
+        cannotFavorite: "❌ | Esta canción no se puede guardar en favoritos.",
+        favoriteError: "❌ | No se pudo actualizar tus favoritos, probá de nuevo en un rato.",
+        favoriteAdded: (title: string) => `❤️ **${title}** se agregó a tus favoritos.`,
+        favoriteRemoved: (title: string) => `💔 **${title}** se quitó de tus favoritos.`,
+        back10: "⏪ Retrocediendo 10 segundos",
+        fwd15: "⏩ Avanzando 15 segundos",
+        stopped: "🛑 Se detuvo la reproducción",
+        shuffled: "🔀 Lista mezclada",
+        inactivity: "👌 Me he desconectado del canal de voz por inactividad.",
+        queueEndAuthor: "⏭️ | lista de reproducción",
+        queueEnd: "🗿 Queue finalizada.",
+    },
+
+    /** Lo que comparten /favoritos y /playlist */
+    saved: {
+        nothingToSave: "Escribí una canción o un enlace en `busqueda`, o usá el comando mientras suena algo.",
+        cannotSave: "❌ | Esta canción no se puede guardar.",
+        noResults: "No se encontraron resultados.",
+        searchError: "❌ Ocurrió un error al buscar, intentá de nuevo.",
+        noPlaylists: "Acá solo se pueden guardar canciones sueltas, no playlists.",
+        playlistEmpty: "La playlist no tiene canciones que se puedan guardar.",
+        failedField: "No se pudieron cargar",
+        failedValue: (n: number) => `${n} (puede que ya no estén disponibles)`,
+        added: (n: number, mixed: boolean) => `Se agregaron **${n}** canciones${mixed ? " mezcladas" : ""} a la cola.`,
+        noneLeft: "No quedan canciones.",
+        pageFooter: (page: number, pages: number, n: number, hint: string) => `Página ${page}/${pages} · ${n} canciones · ${hint}`,
+        removePlaceholder: "Quitar canción…",
+    },
+
+    favorites: {
+        none: "Todavía no tenés favoritos: tocá ❤️ en el mensaje del reproductor para guardar la canción que suena.",
+        already: (title: string) => `**${title}** ya estaba en tus favoritos.`,
+        added: (title: string) => `❤️ **${title}** se agregó a tus favoritos.`,
+        loadFailed: "❌ No se pudo cargar ninguno de tus favoritos, probá de nuevo en un rato.",
+        of: (name: string) => `Favoritos de ${name} ❤️`,
+        loaded: (total: number, loaded: number) => `Tenés ${total} favoritos; se cargaron ${loaded}.`,
+        hint: "/favoritos play para escucharlos",
+    },
+
+    playlist: {
+        notFound: (name: string) => `No tenés una playlist llamada **${name}**. Mirá las tuyas con \`/playlist ver\`.`,
+        emptyName: "El nombre no puede estar vacío.",
+        max: (max: number) => `Ya tenés ${max} playlists, que es el máximo. Borrá alguna con \`/playlist borrar\`.`,
+        exists: (name: string) => `Ya tenés una playlist llamada **${name}**.`,
+        created: (name: string) => `📁 Se creó la playlist **${name}**. Agregale canciones con \`/playlist agregar\`.`,
+        full: (name: string, max: number) => `**${name}** ya tiene ${max} canciones, que es el máximo.`,
+        alreadyIn: (title: string, name: string) => `**${title}** ya estaba en **${name}**.`,
+        addedTrack: (title: string, name: string, count: number) => `➕ **${title}** se agregó a **${name}** (${count} canciones).`,
+        repeated: (n: number) => `${n} ya estaban`,
+        leftOut: (n: number, max: number) => `${n} no entraron (máximo ${max} por playlist)`,
+        addedPlaylist: (n: number, from: string, name: string, count: number) => `➕ Se agregaron **${n}** canciones de **${from}** a **${name}** (${count} canciones).`,
+        empty: (name: string) => `**${name}** está vacía. Agregale canciones con \`/playlist agregar\`.`,
+        loadFailed: (name: string) => `❌ No se pudo cargar ninguna canción de **${name}**, probá de nuevo en un rato.`,
+        of: (name: string) => `Playlist de ${name} 📁`,
+        none: "Todavía no tenés playlists. Creá una con `/playlist crear`.",
+        listOf: (name: string) => `Playlists de ${name} 📁`,
+        listLine: (name: string, tracks: string) => `• **${name}** · ${tracks}`,
+        listFooter: (n: number, max: number) => `${n}/${max} playlists · /playlist ver playlist:<nombre> para ver sus canciones`,
+        hint: "/playlist play para escucharla",
+        otherExists: (name: string) => `Ya tenés otra playlist llamada **${name}**.`,
+        renamed: (from: string, to: string) => `✏️ **${from}** ahora se llama **${to}**.`,
+        confirmDelete: (name: string, n: number) => `¿Borrar **${name}** y sus ${n} canciones? No se puede deshacer.`,
+        deleteButton: "Borrar",
+        cancelButton: "Cancelar",
+        cancelled: (name: string) => `Se canceló: **${name}** sigue igual.`,
+        deleted: (name: string) => `🗑️ Se borró **${name}**.`,
+        didNotExist: (name: string) => `**${name}** ya no existía.`,
+        timedOut: (name: string) => `No se borró nada: **${name}** sigue igual.`,
+        option: (name: string, tracks: string) => `${name} (${tracks})`,
+    },
+
+    /**
+     * Nombre en este idioma de cada comando, subcomando y opción (la clave es el nombre en inglés, que es el base).
+     * Discord los muestra según el idioma de cada usuario; el código lee las opciones siempre por el nombre base.
+     * Minúsculas y sin tildes: es lo que acepta Discord.
+     */
+    names: {
+        favorites: "favoritos", add: "agregar", view: "ver", create: "crear", rename: "renombrar", delete: "borrar",
+        search: "busqueda", amount: "cantidad", shuffle: "mezclar", name: "nombre", new_name: "nuevo_nombre",
+        mode: "modo", level: "nivel", default: "predeterminado", from: "desde", to: "hasta",
+        position: "posicion", seconds: "segundos", language: "idioma",
+    } as Record<string, string>,
+
+    /** Descripciones de los comandos y sus opciones (las ve Discord al registrarlos) */
+    commands: {
+        search: "Escribe el nombre de la canción, artista o pega un enlace directo.",
+        play: "Reproduce o agrega a la cola una canción, álbum o playlist (búsqueda o enlace de YouTube o Spotify).",
+        playnext: "Agrega una canción para que suene justo después de la actual.",
+        forceplay: "Reproduce una canción ya, cortando la que suena (la cola sigue igual).",
+        pause: "Pausa la canción actual.",
+        resume: "Reanuda la canción pausada.",
+        stop: "Detiene la música, vacía la cola y desconecta el bot.",
+        queue: "Muestra lo que suena y lo que sigue en la cola (solo vos la ves).",
+        skip: "Pasa a la siguiente canción, o salta a una posición de la cola sin borrar las del medio.",
+        skipPosition: "Especifica la posición a la que deseas saltar en la lista de reproducción.",
+        move: "Mueve una canción de la cola a otra posición.",
+        moveFrom: "Posición actual de la canción.",
+        moveTo: "Posición nueva (1 = la siguiente).",
+        remove: "Quita de la cola la canción en esa posición.",
+        removePosition: "Posición de la canción que quieres eliminar.",
+        shuffle: "Mezcla las canciones de la cola.",
+        clear: "Vacía la cola (la canción actual sigue sonando).",
+        loop: "Repetición: OFF, canción o cola (sin elegir, pasa a la siguiente, como el botón).",
+        loopMode: "Qué repetir.",
+        volume: "Cambia el volumen (1-100) o muestra el actual. Con predeterminado, el del servidor.",
+        volumeLevel: "Volumen de 1 a 100. Sin elegir, muestra el actual.",
+        volumeDefault: "Guardarlo como volumen por defecto del servidor (requiere Gestionar el servidor).",
+        forward: "Adelanta la canción actual unos segundos (10 si no indicás).",
+        forwardSeconds: "Número de segundos para avanzar (predeterminado: 10 segundos).",
+        backward: "Retrocede la canción actual unos segundos (10 si no indicás).",
+        backwardSeconds: "Número de segundos para retroceder (predeterminado: 10 segundos).",
+        help: "Muestra todos los comandos del bot.",
+        ping: "Muestra cuánto tarda el bot en responder (en ms).",
+        favorites: "🧪 Experimental · Tus canciones favoritas (las que guardaste con ❤️).",
+        favoritesPlay: "Agrega tus favoritos a la cola.",
+        favoritesAmount: (max: number) => `Cuántas cargar (todas si no lo indicás, hasta ${max}).`,
+        favoritesMix: "Mezclarlas al azar (si no, van de la más nueva a la más vieja).",
+        favoritesAdd: "Guarda una canción en tus favoritos (la que suena, si no escribís nada).",
+        savedSearch: "Nombre de la canción, artista o enlace.",
+        favoritesView: "Muestra tus favoritos (solo vos los ves) y permite quitarlos.",
+        playlist: "🧪 Experimental · Tus playlists: crealas, agregales canciones y reproducilas.",
+        playlistCreate: "Crea una playlist vacía.",
+        playlistName: "Nombre de la playlist.",
+        playlistAdd: "Agrega una canción o una playlist de YouTube (o la que suena, si no escribís nada).",
+        playlistAddTo: "A qué playlist.",
+        playlistAddSearch: "Nombre de la canción, artista, o enlace de una canción o playlist.",
+        playlistPlay: "Agrega una playlist a la cola.",
+        playlistPlayWhich: "Cuál reproducir.",
+        playlistMix: "Mezclarla al azar (si no, va en el orden en que se agregaron).",
+        playlistView: "Muestra tus playlists, o las canciones de una (con menú para quitarlas).",
+        playlistViewWhich: "Cuál ver (si no, se listan todas).",
+        playlistRename: "Le cambia el nombre a una playlist.",
+        playlistRenameWhich: "Cuál renombrar.",
+        playlistNewName: "El nombre nuevo.",
+        playlistDelete: "Borra una playlist y sus canciones (pide confirmación).",
+        playlistDeleteWhich: "Cuál borrar.",
+        language: "Muestra o cambia el idioma del bot en este servidor (cambiarlo requiere Gestionar el servidor).",
+        languageOption: "El idioma nuevo. Sin elegir, muestra el actual.",
+    },
+}
+
+export default es
+export type Texts = typeof es

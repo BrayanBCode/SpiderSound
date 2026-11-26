@@ -1,4 +1,5 @@
 import { Player } from "moonlink.js";
+import { textsFor } from "../../../i18n/index.js";
 import { MEvent } from "../../classes/events/MEvent.js";
 import { BClient } from "../../client/BClient.js";
 import logger from "../../client/logger.js";
@@ -23,14 +24,14 @@ export default class queueEnd extends MEvent<"queueEnd"> {
         const perms = txtChannel.permissionsFor(client.user!);
         if (!perms?.has(["SendMessages", "ViewChannel"])) return;
 
-        txtChannel.send({
+        textsFor(client, player.guildId).then(t => txtChannel.send({
             embeds: [
                 EmptyEmbed()
-                    .setAuthor({ name: "⏭️ | lista de reproducción", iconURL: client.user?.displayAvatarURL() ?? "" })
-                    .setDescription("🗿 Queue finalizada.")
+                    .setAuthor({ name: t.player.queueEndAuthor, iconURL: client.user?.displayAvatarURL() ?? "" })
+                    .setDescription(t.player.queueEnd)
                     .setColor("Yellow")
             ]
-        }).catch(err => logger.error("[QueueEnd] Error enviando mensaje de cola finalizada:", err));
+        })).catch(err => logger.error("[QueueEnd] Error enviando mensaje de cola finalizada:", err));
 
     }
 }

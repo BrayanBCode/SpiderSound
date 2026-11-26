@@ -51,8 +51,11 @@
 | `/playlist renombrar` · `/playlist borrar` | Cambia el nombre o borra una playlist (pide confirmación) |
 | `/help` | Lista todos los comandos (se arma sola con los comandos cargados) |
 | `/ping` | Muestra la latencia del bot en ms |
+| `/idioma` | Muestra o cambia el idioma del bot en el servidor: español o inglés (cambiarlo requiere Gestionar el servidor) |
 
 Los comandos que controlan la reproducción solo funcionan si estás en el mismo canal de voz que el bot.
+
+**Idioma.** El bot responde en español o en inglés según el servidor. Si nadie lo eligió con `/idioma`, usa el idioma de Discord del servidor: Discord pone inglés a los servidores que no son Comunidad, así que al entrar a un servidor nuevo el bot avisa en los dos idiomas cómo cambiarlo. Los nombres de los comandos se ven en el idioma de Discord de cada usuario: con Discord en inglés, `/favoritos ver` aparece como `/favorites view` y `/idioma` como `/language`.
 
 ---
 
@@ -67,7 +70,7 @@ En el [Developer Portal](https://discord.com/developers/applications) creá una 
 - **Bot → Privileged Gateway Intents**: no hace falta activar ninguno. El bot solo usa intents comunes (servidores y canales de voz).
 - **Bot → Authorization Flow**: **Requires OAuth2 Code Grant** tiene que quedar **apagado** (si no, la invitación falla). **Public Bot** prendido si querés que otros lo inviten a sus servidores; apagado si es solo para vos.
 - **Bot → Token**: el `token` del `.env` (con *Reset Token*). No lo compartas ni lo subas a ningún lado.
-- **General Information → Application ID**: es el `botClientID` del `.env`. Tu propio ID de usuario de Discord va en `ownerID`.
+- **General Information → Application ID**: es el `discord.clientId` de `config/config.yml`. Tu propio ID de usuario de Discord va en `discord.ownerId`.
 - **Invitar el bot**: en **OAuth2 → URL Generator** marcá los scopes `bot` y `applications.commands`, y estos permisos: Ver canales, Enviar mensajes, Insertar enlaces, Leer el historial de mensajes, Usar emojis externos, Conectar y Hablar. Abrí la URL generada y elegí tu servidor.
 
 ### Instalación
@@ -83,12 +86,14 @@ cd SpiderSound
 
    ```bash
    cp .env.example .env
+   cp config/config.example.yml config/config.yml
    cp application.example.yml application.yml
    ```
 
-   - En `.env`: `token` y `botClientID` de tu bot ([Developer Portal](https://discord.com/developers/applications)), y contraseñas propias para `lavalinkPassword` y `YT_CIPHER_TOKEN`.
+   - En `.env`, **solo los secretos**: el `token` de tu bot ([Developer Portal](https://discord.com/developers/applications)) y contraseñas propias para `lavalinkPassword` y `YT_CIPHER_TOKEN`.
+   - En `config/config.yml`, lo que no es secreto: `discord.clientId` (Application ID) y, si querés, `discord.ownerId` y `discord.devGuildId`. Los IDs van **entre comillas**: sin comillas el número se redondea y el bot no arranca (lo avisa).
    - En `application.yml`: las mismas contraseñas en `server.password` y `plugins.youtube.remoteCipher.password`, y (opcional) el Client ID/Secret de una app de Spotify.
-   - Plugin de YouTube: `YOUTUBE_PLUGIN_CHANNEL` en `.env` elige qué versión baja Lavalink al arrancar: `release` (última estable) o `dev` (último snapshot). Vacío usa la versión fija de `application.yml`. La versión en uso aparece en `docker compose logs lavalink` (líneas `[YouTubePlugin]`). Si tu `application.yml` es anterior a este ajuste, copiá la línea del plugin de YouTube (con `${YOUTUBE_PLUGIN_VERSION:...}`) y su `snapshot` desde `application.example.yml`.
+   - Plugin de YouTube: `lavalink.youtubePluginChannel` en `config/config.yml` elige qué versión baja Lavalink al arrancar: `release` (última estable) o `dev` (último snapshot). Vacío usa la versión fija de `application.yml`. La versión en uso aparece en `docker compose logs lavalink` (líneas `[YouTubePlugin]`). Si tu `application.yml` es anterior a este ajuste, copiá la línea del plugin de YouTube (con `${YOUTUBE_PLUGIN_VERSION:...}`) y su `snapshot` desde `application.example.yml`.
 
 2. **Levantar**
 
@@ -104,7 +109,7 @@ cd SpiderSound
 
    Si el bot corre en más de una PC (por turnos), los favoritos pueden vivir en una base compartida: ver [Base de datos compartida](#base-de-datos-compartida-opcional).
 
-   Opcional: con `DEV_GUILD_ID` en el `.env` (ID de tu servidor), el bot crea ahí `#notificaciones-bot` y avisa arranques, servidores nuevos o perdidos, errores no controlados y caídas de Lavalink. El canal es privado: solo lo ven el dueño del bot (`ownerID`) y los administradores. Necesita el permiso Gestionar canales.
+   Opcional: con `discord.devGuildId` en `config/config.yml` (ID de tu servidor), el bot crea ahí `#notificaciones-bot` y avisa arranques, servidores nuevos o perdidos, errores no controlados y caídas de Lavalink. El canal es privado: solo lo ven el dueño del bot (`discord.ownerId`) y los administradores. Necesita el permiso Gestionar canales.
 
 ### Base de datos compartida (opcional)
 
@@ -135,19 +140,20 @@ En la carpeta del proyecto:
 update.bat       # Windows (o doble clic)
 ```
 
-El script baja la última versión del repo (`git pull`), las imágenes nuevas de Lavalink, yt-cipher y spotify-tokener, reconstruye el bot y reinicia solo lo que cambió. Borra las imágenes viejas del bot y al final espera a que el bot se conecte a Discord (hasta 90 s): si no lo logra o se reinicia solo, avisa y muestra dónde mirar. No toca `.env`, `application.yml` ni `data/`.
+El script baja la última versión del repo (`git pull`), las imágenes nuevas de Lavalink, yt-cipher y spotify-tokener, reconstruye el bot y reinicia solo lo que cambió. Borra las imágenes viejas del bot y al final espera a que el bot se conecte a Discord (hasta 90 s): si no lo logra o se reinicia solo, avisa y muestra dónde mirar. No toca `.env`, `config/config.yml`, `application.yml` ni `data/`.
 
 - Necesita una carpeta clonada con git. Si la bajaste como ZIP, el script frena y muestra los comandos para convertirla una sola vez, sin tocar tu configuración.
 - Si falta `.env` o `application.yml`, o si son carpetas (Docker las crea vacías cuando el bot se levanta antes de crear los archivos), frena antes de tocar nada y explica cómo arreglarlo.
+- Si no hay `config/config.yml` (instalaciones anteriores a v3.6.0), avisa y sigue: el bot usa los valores viejos del `.env` (`botClientID`, `ownerID`, `DEV_GUILD_ID`, `lavalinkHost`, `lavalinkPort`, `lavalinkSecure`, `YOUTUBE_PLUGIN_CHANNEL`). Para pasarte al archivo nuevo, copiá `config/config.example.yml`, completalo y borrá esas líneas del `.env` (si quedan, le ganan al archivo).
 - Si `./update.sh` dice `permission denied`, corré `chmod +x update.sh` una vez (o usá `sh update.sh`).
 
-- Si cambiaron `.env.example` o `application.example.yml`, avisa: compará con tus copias por si hay opciones nuevas.
+- Si cambiaron `.env.example`, `application.example.yml` o `config/config.example.yml`, avisa: compará con tus copias por si hay opciones nuevas.
 - Si modificaste archivos del repo, frena antes de actualizar para no pisarlos (guardalos con `git stash`).
 - Si había música sonando y solo se actualizó el bot, la retoma sola después del reinicio; si se actualizó Lavalink, la reproducción se corta.
 
 ### Desarrollo sin Docker (opcional)
 
-Con [Bun](https://bun.sh) 1.4+ instalado: `bun install`, levantar solo Lavalink con `docker compose up -d lavalink` (en el `.env`, `lavalinkHost="localhost"`) y correr el bot con `bun start`. Bun lee el `.env` solo y ejecuta TypeScript directo, sin compilar. Para revisar tipos: `bun run typecheck`; para los tests: `bun test`. Algunas dependencias llevan parches propios (`bun patch`): antes de actualizarlas, ver [`docs/PARCHES.md`](docs/PARCHES.md).
+Con [Bun](https://bun.sh) 1.4+ instalado: `bun install`, levantar solo Lavalink con `docker compose up -d lavalink` (en `config/config.yml`, `lavalink.host: localhost`, que es el valor por defecto) y correr el bot con `bun start`. Bun lee el `.env` solo y ejecuta TypeScript directo, sin compilar. Para revisar tipos: `bun run typecheck`; para los tests: `bun test`. Algunas dependencias llevan parches propios (`bun patch`): antes de actualizarlas, ver [`docs/PARCHES.md`](docs/PARCHES.md).
 
 ### Token de YouTube (OAuth)
 

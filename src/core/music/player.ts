@@ -5,6 +5,7 @@ import type { BClient } from "../client/BClient.js";
 import { ISimpleEmbedReply } from "../../types/interface/ISimpleEmbedReply.js";
 import { deleteAfterTimer, EmptyEmbed, replyEmbed } from "../../utils/messages.js";
 import { formatMS_HHMMSS, titleCleaner } from "../../utils/tools.js";
+import { textsFor, type Texts } from "../../i18n/index.js";
 
 // Helpers del reproductor: comprobaciones de oyente, salto, seek y datos de la canción.
 
@@ -14,10 +15,11 @@ import { formatMS_HHMMSS, titleCleaner } from "../../utils/tools.js";
 export async function replyNoPlayer(interaction: ISimpleEmbedReply["interaction"]) {
     const source = interaction.isButton() ? `botón ${interaction.customId}` : `/${interaction.commandName}`;
     logger.debug(`[NoPlayer] ${interaction.user.username} usó ${source} sin player activo en ${interaction.guild?.name}`);
+    const t = await textsFor(interaction.client as BClient, interaction.guildId);
     return deleteAfterTimer(await replyEmbed({
         interaction,
         embed: EmptyEmbed()
-            .setDescription("❌ | No hay nada reproduciéndose.")
+            .setDescription(t.common.noPlayer)
             .setColor("Red"),
         ephemeral: true,
     }), 15000);
@@ -29,12 +31,12 @@ export async function replyNoPlayer(interaction: ISimpleEmbedReply["interaction"
  *
  * Normalmente `track.requester` es un `User` de discord.js, pero cuando moonlink
  * restaura una sesión (reinicio del bot) vuelve como un objeto plano serializado,
- * sin métodos. Esto lee ambos casos sin romper.
+ * sin métodos. Esto lee ambos casos sin romper. `unknown` es el nombre si no se sabe quién la pidió.
  */
-export function getRequesterInfo(requester: any): { name: string; avatar?: string } {
-    if (!requester) return { name: "Desconocido" };
+export function getRequesterInfo(requester: any, unknown: string): { name: string; avatar?: string } {
+    if (!requester) return { name: unknown };
 
-    const name = requester.displayName ?? requester.globalName ?? requester.username ?? "Desconocido";
+    const name = requester.displayName ?? requester.globalName ?? requester.username ?? unknown;
     const avatar = typeof requester.displayAvatarURL === "function"
         ? requester.displayAvatarURL()
         : (typeof requester.displayAvatarURL === "string" ? requester.displayAvatarURL : requester.avatarURL ?? undefined);
@@ -79,10 +81,11 @@ export async function requireListener(client: BClient, interaction: ChatInputCom
 
     if (interaction.member.voice.channelId !== player.voiceChannelId) {
         logger.info(`[Guard] ${interaction.user.username} usó /${interaction.commandName} fuera del canal de voz del bot en ${interaction.guild.name}`);
+        const t = await textsFor(client, interaction.guildId);
         deleteAfterTimer(await replyEmbed({
             interaction,
             embed: EmptyEmbed()
-                .setDescription("❌ | Debes estar en el canal de voz del bot para usar este comando.")
+                .setDescription(t.common.notListener)
                 .setColor("Red"),
             ephemeral: true,
         }), 15000);
@@ -115,7 +118,7 @@ export async function seekRelative(player: Player, deltaMs: number): Promise<num
  */
 export async function respondQueuePositions(client: BClient, inter: AutocompleteInteraction) {
     const queue = inter.guildId ? client.getPlayer(inter.guildId)?.queue.tracks ?? [] : [];
-    if (queue.length === 0) return inter.respond([{ name: "Lista de reproducción vacía", value: -1 }]);
+    if (queue.length === 0) return inter.respond([{ name: (await textsFor(client, inter.guildId)).common.emptyQueueOption, value: -1 }]);
 
     const pos = Math.min(Math.max((Number(inter.options.getFocused()) || 1) - 1, 0), queue.length - 1);
     const range = 5;
@@ -131,13 +134,13 @@ export async function respondQueuePositions(client: BClient, inter: Autocomplete
  * Aviso de una acción sobre una canción (/skip, /move), con el mismo formato que los de agregar a la cola:
  * encabezado con el avatar, título limpio con enlace, artista y duración, portada y quién lo pidió.
  */
-export function trackActionEmbed(header: string, track: Track, user: { name: string; avatar?: string }, extra = "") {
+export function trackActionEmbed(header: string, track: Track, user: { name: string; avatar?: string }, t: Texts, extra = "") {
     return EmptyEmbed()
         .setAuthor({ name: header, iconURL: user.avatar })
         .setTitle(titleCleaner(track.title, track.author) || track.title)
         .setURL(track.uri ?? null)
-        .setDescription(`**${track.author || "Desconocido"}** · \`${track.isStream ? "En vivo" : formatMS_HHMMSS(track.duration)}\`${extra}`)
+        .setDescription(`**${track.author || t.common.unknown}** · \`${track.isStream ? t.common.live : formatMS_HHMMSS(track.duration)}\`${extra}`)
         .setThumbnail(track.artworkUrl ?? null)
-        .setFooter({ text: `Pedido por ${user.name}` })
+        .setFooter({ text: t.common.requestedBy(user.name) })
         .setColor("Green");
 }

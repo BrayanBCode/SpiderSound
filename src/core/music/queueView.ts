@@ -1,6 +1,7 @@
 // Texto de la cola (/queue y botón 📜), sin Discord de por medio: se prueba en test/core/music/queueView.test.ts
 import { formatMS_HHMMSS, titleCleaner } from "../../utils/tools.js";
 import { loopLabel, totalDuration, type LoopMode, type TimedTrack } from "./timing.js";
+import type { Texts } from "../../i18n/index.js";
 
 export interface QueueTrack extends TimedTrack {
     title: string;
@@ -25,18 +26,18 @@ const code = (text: string) => `\`${text}\``;
 const cut = (text: string, max: number) => text.length > max ? `${text.slice(0, max - 1)}…` : text;
 
 /** Título limpio, cortado y con enlace (si es un enlace normal: los corchetes rompen el formato de Discord) */
-function linkedTitle(track: QueueTrack, max = TITLE_MAX) {
-    const title = cut(titleCleaner(track.title, track.author) || track.title || "Sin título", max).replace(/[[\]]/g, "");
+function linkedTitle(track: QueueTrack, t: Texts, max = TITLE_MAX) {
+    const title = cut(titleCleaner(track.title, track.author) || track.title || t.common.untitled, max).replace(/[[\]]/g, "");
     return track.uri && /^https?:\/\/\S+$/.test(track.uri) ? `[${title}](${track.uri})` : `**${title}**`;
 }
 
-const durationLabel = (track: QueueTrack) => track.isStream ? "En vivo" : formatMS_HHMMSS(track.duration);
+const durationLabel = (track: QueueTrack, t: Texts) => track.isStream ? t.common.live : formatMS_HHMMSS(track.duration);
 
 export const queuePageCount = (state: QueueState, pageSize = QUEUE_PAGE_SIZE) =>
     Math.max(1, Math.ceil(state.tracks.length / pageSize));
 
 /** Una página de la cola: lo que suena, las canciones de la página y el pie con el total */
-export function queuePage(state: QueueState, page: number, pageSize = QUEUE_PAGE_SIZE) {
+export function queuePage(state: QueueState, page: number, t: Texts, pageSize = QUEUE_PAGE_SIZE) {
     const pages = queuePageCount(state, pageSize);
     const index = Math.min(Math.max(page, 0), pages - 1);
     const start = index * pageSize;
@@ -44,19 +45,19 @@ export function queuePage(state: QueueState, page: number, pageSize = QUEUE_PAGE
     const lines: string[] = [];
     const current = state.current;
     if (current) {
-        const time = current.isStream ? "En vivo" : `${formatMS_HHMMSS(current.position ?? 0)} / ${formatMS_HHMMSS(current.duration)}`;
-        lines.push(`▶ **Sonando:** ${linkedTitle(current, CURRENT_TITLE_MAX)} · ${cut(current.author || "Desconocido", AUTHOR_MAX)} ${code(time)}`, "");
+        const time = current.isStream ? t.common.live : `${formatMS_HHMMSS(current.position ?? 0)} / ${formatMS_HHMMSS(current.duration)}`;
+        lines.push(`${t.queue.nowPlaying} ${linkedTitle(current, t, CURRENT_TITLE_MAX)} · ${cut(current.author || t.common.unknown, AUTHOR_MAX)} ${code(time)}`, "");
     }
 
     const slice = state.tracks.slice(start, start + pageSize);
     if (slice.length) {
         lines.push(...slice.map((track, i) =>
-            `${code(`${start + i + 1}.`)} ${linkedTitle(track)} · ${cut(track.author || "Desconocido", AUTHOR_MAX)} ${code(durationLabel(track))}`));
+            `${code(`${start + i + 1}.`)} ${linkedTitle(track, t)} · ${cut(track.author || t.common.unknown, AUTHOR_MAX)} ${code(durationLabel(track, t))}`));
     } else {
-        lines.push("No hay más canciones en la cola. Usá /play para agregar.");
+        lines.push(t.queue.noMore);
     }
 
-    const footer = `Página ${index + 1}/${pages} · ${state.tracks.length} en cola (${formatMS_HHMMSS(totalDuration(state.tracks))}) · Loop: ${loopLabel(state.loop)}`;
+    const footer = t.queue.footer(index + 1, pages, state.tracks.length, formatMS_HHMMSS(totalDuration(state.tracks)), loopLabel(state.loop, t));
 
     return { index, pages, description: lines.join("\n").slice(0, 4096), footer };
 }

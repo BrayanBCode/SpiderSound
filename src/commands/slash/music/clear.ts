@@ -1,14 +1,16 @@
 import { deleteAfterTimer, EmptyEmbed, replyEmbed } from "../../../utils/messages.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { requireListener } from "../../../core/music/player.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 
 export default new SlashCommand()
     .setName("clear")
-    .setDescription("Vacía la cola (la canción actual sigue sonando).")
+    .setDescription(en.commands.clear).setDescriptionLocalizations(esLocales(es.commands.clear))
     .setCategory("Music")
 
     .setExecute(
         async (client, inter) => {
+            const t = await textsFor(client, inter.guildId);
             const player = await requireListener(client, inter);
             if (!player) return;
 
@@ -17,7 +19,7 @@ export default new SlashCommand()
                     await replyEmbed({
                         interaction: inter,
                         embed: EmptyEmbed()
-                            .setDescription("❌ | No hay canciones en la lista de reproducción.")
+                            .setDescription(t.common.emptyQueue)
                             .setColor("Red"),
                         ephemeral: true,
                     }), 15000);
@@ -27,8 +29,8 @@ export default new SlashCommand()
             return inter.reply({
                 embeds: [
                     EmptyEmbed()
-                        .setAuthor({ name: "🗑️ | Limpiar lista de reproducción", iconURL: inter.user.displayAvatarURL() })
-                        .setDescription("La lista de reproducción ha sido limpiada.")
+                        .setAuthor({ name: t.clear.author, iconURL: inter.user.displayAvatarURL() })
+                        .setDescription(t.clear.done)
                         .setColor("Green")
                 ]
             });

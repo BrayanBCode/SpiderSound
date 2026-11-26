@@ -27,6 +27,7 @@ services:
         # Antes de arrancar Lavalink elige la versión del plugin de YouTube (ver lavalink-entrypoint.sh)
         entrypoint: ['sh', '/opt/Lavalink/lavalink-entrypoint.sh']
         environment:
+            # Si está en el .env (nombre viejo) gana; si no, el entrypoint lo lee de config/config.yml
             - YOUTUBE_PLUGIN_CHANNEL=${YOUTUBE_PLUGIN_CHANNEL:-}
             # Sin -Xmx la JVM se reservaba ~4 GB de heap; con una canción usa ~140 MB
             - JAVA_TOOL_OPTIONS=-Xmx512m
@@ -36,6 +37,8 @@ services:
         volumes:
             - ./application.yml:/opt/Lavalink/application.yml:ro
             - ./lavalink-entrypoint.sh:/opt/Lavalink/lavalink-entrypoint.sh:ro
+            # La carpeta y no el archivo: si falta, Docker crea una carpeta vacía (inofensivo) en vez de una carpeta con el nombre del archivo
+            - ./config:/opt/Lavalink/config:ro
             - ./plugins:/opt/Lavalink/plugins
         depends_on:
             - yt-cipher
@@ -63,8 +66,9 @@ services:
             # Dentro de Docker, Lavalink es el servicio "lavalink" (el .env trae localhost para correr fuera de Docker)
             - lavalinkHost=lavalink
         volumes:
-            # El código y las dependencias vienen en la imagen; de la PC solo el .env (Bun lo lee solo) y los datos
+            # El código y las dependencias vienen en la imagen; de la PC solo el .env (Bun lo lee solo), la configuración y los datos
             - ./.env:/usr/src/app/.env:ro
+            - ./config:/usr/src/app/config:ro
             - ./logs:/usr/src/app/logs
             - ./.moonlink:/usr/src/app/.moonlink
             # Base de datos de favoritos y playlists (bun:sqlite)

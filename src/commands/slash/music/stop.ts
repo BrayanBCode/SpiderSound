@@ -1,14 +1,16 @@
 import logger from "../../../core/client/logger.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import { deleteAfterTimer, EmptyEmbed, replyEmbed } from "../../../utils/messages.js";
 import { requireListener } from "../../../core/music/player.js";
 
 export default new SlashCommand()
     .setName("stop")
-    .setDescription("Detiene la música, vacía la cola y desconecta el bot.")
+    .setDescription(en.commands.stop).setDescriptionLocalizations(esLocales(es.commands.stop))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
+            const t = await textsFor(client, inter.guildId);
             const player = await requireListener(client, inter);
             if (!player) return;
 
@@ -19,8 +21,8 @@ export default new SlashCommand()
             return inter.reply({
                 embeds: [
                     EmptyEmbed()
-                        .setAuthor({ name: "⏹️ | Detener", iconURL: inter.user.displayAvatarURL() })
-                        .setDescription("La reproducción se ha detenido y la lista de reproducción se ha limpiado.")
+                        .setAuthor({ name: t.stop.author, iconURL: inter.user.displayAvatarURL() })
+                        .setDescription(t.stop.done)
                         .setColor("Green")
                 ]
             });

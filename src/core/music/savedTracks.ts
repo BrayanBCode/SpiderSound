@@ -1,4 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, ComponentType, GuildMember, MessageFlags, StringSelectMenuBuilder } from "discord.js"
+import type { Texts } from "../../i18n/index.js"
 import { Track } from "moonlink.js"
 import { BClient } from "../client/BClient.js"
 import logger from "../client/logger.js"
@@ -33,39 +34,39 @@ export const editReplyEmbed = (inter: ChatInputCommandInteraction<"cached">, des
 const toSaved = (track: Track): SavedTrack => ({ uri: track.uri!, title: track.title, author: track.author, duration: track.duration, artworkUrl: track.artworkUrl })
 
 /**
- * Qué guardar: lo de la opción `busqueda` o, si está vacía, la canción que suena.
+ * Qué guardar: lo de la opción `search` o, si está vacía, la canción que suena.
  * Con `allowPlaylist`, un enlace de playlist devuelve todas sus canciones (y su nombre).
  * Requiere `deferReply` hecho. Si no hay nada que guardar, ya respondió y devuelve `undefined`.
  */
-export async function resolveTracksToSave(client: BClient, inter: ChatInputCommandInteraction<"cached">, allowPlaylist = false)
+export async function resolveTracksToSave(client: BClient, inter: ChatInputCommandInteraction<"cached">, t: Texts, allowPlaylist = false)
     : Promise<{ tracks: SavedTrack[], playlistName?: string } | undefined> {
-    const query = inter.options.getString("busqueda")?.trim()
+    const query = inter.options.getString("search")?.trim()
 
     if (!query) {
         const track = client.getPlayer(inter.guildId)?.current
-        if (!track) return void await editReplyEmbed(inter, "Escribí una canción o un enlace en `busqueda`, o usá el comando mientras suena algo.", "Yellow")
-        if (!track.uri) return void await editReplyEmbed(inter, "❌ | Esta canción no se puede guardar.", "Red")
+        if (!track) return void await editReplyEmbed(inter, t.saved.nothingToSave, "Yellow")
+        if (!track.uri) return void await editReplyEmbed(inter, t.saved.cannotSave, "Red")
         return { tracks: [toSaved(track)] }
     }
 
-    if (query === queryErrors.NO_RESULTS || query === queryErrors.JOIN_VC) return void await editReplyEmbed(inter, "No se encontraron resultados.", "Yellow")
+    if (query === queryErrors.NO_RESULTS || query === queryErrors.JOIN_VC) return void await editReplyEmbed(inter, t.saved.noResults, "Yellow")
 
     const res = await client.music.search({ query, requester: inter.user }).catch(err => {
         logger.error(`[${inter.commandName}] Error buscando "${query}":`, err)
         return null
     })
-    if (res === null) return void await editReplyEmbed(inter, "❌ Ocurrió un error al buscar, intentá de nuevo.", "Red")
+    if (res === null) return void await editReplyEmbed(inter, t.saved.searchError, "Red")
 
     if (res?.loadType === "playlist") {
-        if (!allowPlaylist) return void await editReplyEmbed(inter, "Acá solo se pueden guardar canciones sueltas, no playlists.", "Yellow")
+        if (!allowPlaylist) return void await editReplyEmbed(inter, t.saved.noPlaylists, "Yellow")
         const tracks = res.tracks.filter((t: Track) => t.uri).map(toSaved)
-        if (!tracks.length) return void await editReplyEmbed(inter, "La playlist no tiene canciones que se puedan guardar.", "Yellow")
-        return { tracks, playlistName: res.playlistInfo?.name ?? "Playlist" }
+        if (!tracks.length) return void await editReplyEmbed(inter, t.saved.playlistEmpty, "Yellow")
+        return { tracks, playlistName: res.playlistInfo?.name ?? t.play.playlistFallback }
     }
 
     const track = res?.tracks?.[0]
-    if (!track) return void await editReplyEmbed(inter, "No se encontraron resultados.", "Yellow")
-    if (!track.uri) return void await editReplyEmbed(inter, "❌ | Esta canción no se puede guardar.", "Red")
+    if (!track) return void await editReplyEmbed(inter, t.saved.noResults, "Yellow")
+    if (!track.uri) return void await editReplyEmbed(inter, t.saved.cannotSave, "Red")
     return { tracks: [toSaved(track)] }
 }
 
@@ -126,7 +127,7 @@ interface SavedListOptions {
     remove: (item: SavedListItem) => Promise<void>
 }
 
-function renderPage(items: SavedListItem[], page: number, opts: SavedListOptions) {
+function renderPage(items: SavedListItem[], page: number, opts: SavedListOptions, t: Texts) {
     const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
     const start = page * PAGE_SIZE
     const pageItems = items.slice(start, start + PAGE_SIZE)
@@ -136,14 +137,14 @@ function renderPage(items: SavedListItem[], page: number, opts: SavedListOptions
         .setColor(0x1DB954)
         .setDescription(pageItems.length
             ? pageItems.map((item, i) => `**${start + i + 1}.** [${titleCleaner(item.title, item.author)}](${item.uri}) · ${item.author} · \`${formatMS_HHMMSS(item.duration)}\``).join("\n")
-            : "No quedan canciones.")
-        .setFooter({ text: `Página ${page + 1}/${pages} · ${items.length} canciones · ${opts.hint}` })
+            : t.saved.noneLeft)
+        .setFooter({ text: t.saved.pageFooter(page + 1, pages, items.length, opts.hint) })
 
     const components: ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] = []
     if (pageItems.length) components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId(`${opts.idPrefix}-remove`)
-            .setPlaceholder("Quitar canción…")
+            .setPlaceholder(t.saved.removePlaceholder)
             .addOptions(pageItems.map((item, i) => ({
                 label: `${start + i + 1}. ${titleCleaner(item.title, item.author)}`.slice(0, 100),
                 description: item.author.slice(0, 100),
@@ -157,10 +158,10 @@ function renderPage(items: SavedListItem[], page: number, opts: SavedListOptions
 }
 
 /** Lista paginada, solo para quien la pide, con un menú para quitar canciones. La lista no debe estar vacía */
-export async function showSavedList(inter: ChatInputCommandInteraction<"cached">, opts: SavedListOptions) {
+export async function showSavedList(inter: ChatInputCommandInteraction<"cached">, t: Texts, opts: SavedListOptions) {
     let items = await opts.load()
     let page = 0
-    const { resource } = await inter.reply({ ...renderPage(items, page, opts), flags: MessageFlags.Ephemeral, withResponse: true })
+    const { resource } = await inter.reply({ ...renderPage(items, page, opts, t), flags: MessageFlags.Ephemeral, withResponse: true })
     if (!resource?.message) return
 
     // Colector atado a este mensaje y a sus controles: si no, también atrapa el ❤️ del reproductor
@@ -180,7 +181,7 @@ export async function showSavedList(inter: ChatInputCommandInteraction<"cached">
             else if (i.customId.endsWith("-next")) page++
 
             page = Math.min(Math.max(page, 0), Math.max(0, Math.ceil(items.length / PAGE_SIZE) - 1))
-            await i.update(renderPage(items, page, opts))
+            await i.update(renderPage(items, page, opts, t))
         } catch (err) {
             logger.error(`[${inter.commandName}] Error en la lista de ${inter.user.username}:`, err)
         }

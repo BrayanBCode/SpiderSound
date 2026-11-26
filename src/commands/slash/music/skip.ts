@@ -1,4 +1,5 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js"
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { EmptyEmbed, deleteAfterTimer, replyEmbed } from "../../../utils/messages.js";
 import { getRequesterInfo, requireListener, respondQueuePositions, skipTrack, trackActionEmbed } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
@@ -6,10 +7,11 @@ import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("skip")
-    .setDescription("Pasa a la siguiente canción, o salta a una posición de la cola sin borrar las del medio.")
+    .setDescription(en.commands.skip).setDescriptionLocalizations(esLocales(es.commands.skip))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
+            const t = await textsFor(client, inter.guildId);
             const player = await requireListener(client, inter);
             if (!player) return;
 
@@ -20,7 +22,7 @@ export default new SlashCommand()
                     await replyEmbed({
                         interaction: inter,
                         embed: EmptyEmbed()
-                            .setDescription("❌ | No hay canciones en la lista de reproducción.")
+                            .setDescription(t.common.emptyQueue)
                             .setColor("Red"),
                         ephemeral: true,
                     }), 15000);
@@ -35,21 +37,21 @@ export default new SlashCommand()
                     await replyEmbed({
                         interaction: inter,
                         embed: EmptyEmbed()
-                            .setDescription(`❌ | No hay ninguna canción en la posición ${pos}.`)
+                            .setDescription(t.common.noTrackAt(pos))
                             .setColor("Red"),
                         ephemeral: true,
                     }), 15000);
 
             logger.info(`[/skip] ${inter.user.username} saltó a "${track.title}" (posición ${pos}) en ${inter.guild.name}`);
 
-            const header = pos > 1 ? `Saltó a la posición ${pos} ⏭️` : "Siguiente canción ⏭️";
-            return inter.reply({ embeds: [trackActionEmbed(header, track, getRequesterInfo(inter.member))] });
+            const header = pos > 1 ? t.skip.jumped(pos) : t.skip.next;
+            return inter.reply({ embeds: [trackActionEmbed(header, track, getRequesterInfo(inter.member, t.common.unknown), t)] });
         }
     )
     .setAutoComplete((client, inter) => respondQueuePositions(client, inter))
     .addNumberOption(
         o => o
-            .setName("position")
-            .setDescription("Especifica la posición a la que deseas saltar en la lista de reproducción.")
+            .setName("position").setNameLocalizations(esLocales(es.names.position))
+            .setDescription(en.commands.skipPosition).setDescriptionLocalizations(esLocales(es.commands.skipPosition))
             .setAutocomplete(true)
             .setRequired(false))

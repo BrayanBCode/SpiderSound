@@ -1,15 +1,17 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 import { requireListener, seekRelative } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("backward")
-    .setDescription("Retrocede la canción actual unos segundos (10 si no indicás).")
+    .setDescription(en.commands.backward).setDescriptionLocalizations(esLocales(es.commands.backward))
     .setCategory("Music")
 
     .setExecute(
         async (client, inter) => {
+            const t = await textsFor(client, inter.guildId);
             const seconds = inter.options.getInteger("seconds") ?? 10;
             const player = await requireListener(client, inter);
             if (!player) return;
@@ -18,7 +20,7 @@ export default new SlashCommand()
                 return inter.reply({
                     embeds: [
                         EmptyEmbed()
-                            .setDescription("❌ | No hay ninguna canción reproduciéndose actualmente.")
+                            .setDescription(t.common.nothingPlaying)
                             .setColor("Red")
                     ],
 
@@ -29,7 +31,7 @@ export default new SlashCommand()
             return inter.reply({
                 embeds: [
                     EmptyEmbed()
-                        .setDescription(`✅ | Retrocedido la canción ${seconds} segundos.`)
+                        .setDescription(t.seek.backward(seconds))
                         .setColor("Green")
                 ]
             });
@@ -38,8 +40,8 @@ export default new SlashCommand()
 
     .addIntegerOption(option =>
         option
-            .setName("seconds")
-            .setDescription("Número de segundos para retroceder (predeterminado: 10 segundos).")
+            .setName("seconds").setNameLocalizations(esLocales(es.names.seconds))
+            .setDescription(en.commands.backwardSeconds).setDescriptionLocalizations(esLocales(es.commands.backwardSeconds))
             .setMinValue(1)
             .setMaxValue(600)
             .setRequired(false)

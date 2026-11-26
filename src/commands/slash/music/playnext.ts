@@ -1,4 +1,5 @@
 import { Player, Track } from "moonlink.js";
+import { en, es, esLocales } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import { PlaybackStrategy } from "../../../core/strategy/PlaybackStrategy.js";
 import logger from "../../../core/client/logger.js";
@@ -21,7 +22,7 @@ const playNext = new PlayNext()
 
 export default new SlashCommand()
     .setName("playnext")
-    .setDescription("Agrega una canción para que suene justo después de la actual.")
+    .setDescription(en.commands.playnext).setDescriptionLocalizations(esLocales(es.commands.playnext))
     .setCategory("Music")
     .setExecute(async (client, inter) => {
         try {
@@ -39,8 +40,8 @@ export default new SlashCommand()
     })
     .addStringOption(
         o => o
-            .setName("busqueda")
-            .setDescription("Escribe el nombre de la canción, artista o pega un enlace directo.")
+            .setName("search").setNameLocalizations(esLocales(es.names.search))
+            .setDescription(en.commands.search).setDescriptionLocalizations(esLocales(es.commands.search))
             .setAutocomplete(true)
             .setRequired(true))
 

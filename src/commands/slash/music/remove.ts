@@ -1,14 +1,16 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { deleteAfterTimer, EmptyEmbed, replyEmbed } from "../../../utils/messages.js";
 import { requireListener, respondQueuePositions } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("remove")
-    .setDescription("Quita de la cola la canción en esa posición.")
+    .setDescription(en.commands.remove).setDescriptionLocalizations(esLocales(es.commands.remove))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
+            const t = await textsFor(client, inter.guildId);
             const player = await requireListener(client, inter);
             if (!player) return;
 
@@ -19,9 +21,7 @@ export default new SlashCommand()
                 return deleteAfterTimer(await replyEmbed({
                     interaction: inter,
                     embed: EmptyEmbed()
-                        .setDescription(player.queue.size
-                            ? `❌ | No hay ninguna canción en la posición ${pos}.`
-                            : "❌ | No hay canciones en la lista de reproducción.")
+                        .setDescription(player.queue.size ? t.common.noTrackAt(pos) : t.common.emptyQueue)
                         .setColor("Red"),
                     ephemeral: true,
                 }), 15000);
@@ -32,13 +32,13 @@ export default new SlashCommand()
             return inter.reply({
                 embeds: [
                     EmptyEmbed()
-                        .setAuthor({ name: "🗑️ | Canción eliminada", iconURL: inter.user.displayAvatarURL() })
+                        .setAuthor({ name: t.remove.removed, iconURL: inter.user.displayAvatarURL() })
                         .addFields([
-                            { name: "Título", value: `[${track.title}](${track.uri})`, inline: true },
-                            { name: "Artista", value: track.author, inline: true },
+                            { name: t.common.title, value: `[${track.title}](${track.uri})`, inline: true },
+                            { name: t.common.artist, value: track.author, inline: true },
                         ])
                         .setThumbnail(track.artworkUrl ?? null)
-                        .setFooter({ text: `Solicitado por: ${inter.user.tag}` })
+                        .setFooter({ text: t.remove.requestedBy(inter.user.tag) })
                         .setColor("Green")
                 ]
             });
@@ -47,7 +47,7 @@ export default new SlashCommand()
     .setAutoComplete((client, inter) => respondQueuePositions(client, inter))
     .addNumberOption(
         o => o
-            .setName("position")
-            .setDescription("Posición de la canción que quieres eliminar.")
+            .setName("position").setNameLocalizations(esLocales(es.names.position))
+            .setDescription(en.commands.removePosition).setDescriptionLocalizations(esLocales(es.commands.removePosition))
             .setAutocomplete(true)
             .setRequired(true))

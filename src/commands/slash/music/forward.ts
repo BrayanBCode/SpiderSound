@@ -1,15 +1,17 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 import { requireListener, seekRelative } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("forward")
-    .setDescription("Adelanta la canción actual unos segundos (10 si no indicás).")
+    .setDescription(en.commands.forward).setDescriptionLocalizations(esLocales(es.commands.forward))
     .setCategory("Music")
 
     .setExecute(
         async (client, inter) => {
+            const t = await textsFor(client, inter.guildId);
             const seconds = inter.options.getInteger("seconds") ?? 10;
             const player = await requireListener(client, inter);
             if (!player) return;
@@ -18,7 +20,7 @@ export default new SlashCommand()
                 return inter.reply({
                     embeds: [
                         EmptyEmbed()
-                            .setDescription("❌ | No hay ninguna canción reproduciéndose actualmente.")
+                            .setDescription(t.common.nothingPlaying)
                             .setColor("Red")
                     ],
 
@@ -31,7 +33,7 @@ export default new SlashCommand()
             return inter.reply({
                 embeds: [
                     EmptyEmbed()
-                        .setDescription(`✅ | Avanzado la canción ${seconds} segundos.`)
+                        .setDescription(t.seek.forward(seconds))
                         .setColor("Green")
                 ]
             });
@@ -40,8 +42,8 @@ export default new SlashCommand()
 
     .addIntegerOption(option =>
         option
-            .setName("seconds")
-            .setDescription("Número de segundos para avanzar (predeterminado: 10 segundos).")
+            .setName("seconds").setNameLocalizations(esLocales(es.names.seconds))
+            .setDescription(en.commands.forwardSeconds).setDescriptionLocalizations(esLocales(es.commands.forwardSeconds))
             .setMinValue(1)
             .setMaxValue(600)
             .setRequired(false)

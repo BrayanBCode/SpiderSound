@@ -1,4 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChatInputCommandInteraction, ComponentType, MessageFlags } from "discord.js";
+import type { Texts } from "../../../i18n/index.js";
+import { textsFor } from "../../../i18n/index.js";
+import type { BClient } from "../../client/BClient.js";
 import { Player } from "moonlink.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 import logger from "../../client/logger.js";
@@ -26,15 +29,15 @@ export class QueuePaginator {
         this.timer = timer;
     }
 
-    private render(page: number) {
+    private render(page: number, t: Texts) {
         const { index, pages, description, footer } = queuePage({
             current: this.player.current,
             tracks: this.player.queue.tracks,
             loop: this.player.loop,
-        }, page);
+        }, page, t);
 
         const embed = EmptyEmbed()
-            .setAuthor({ name: "Cola de reproducción 📜" })
+            .setAuthor({ name: t.queue.author })
             .setDescription(description)
             .setFooter({ text: footer })
             .setColor(0x1DB954);
@@ -57,7 +60,8 @@ export class QueuePaginator {
     }
 
     async reply() {
-        let { index, ...view } = this.render(0);
+        const t = await textsFor(this.interaction.client as BClient, this.interaction.guildId);
+        let { index, ...view } = this.render(0, t);
         const response = await this.interaction.reply({ ...view, flags: MessageFlags.Ephemeral, withResponse: true });
         const message = response.resource?.message;
         if (!message) return;
@@ -70,7 +74,7 @@ export class QueuePaginator {
             try {
                 const pages = queuePageCount({ tracks: this.player.queue.tracks, loop: this.player.loop });
                 const target = { queue_first: 0, queue_prev: index - 1, queue_next: index + 1, queue_last: pages - 1 }[btn.customId] ?? index;
-                ({ index, ...view } = this.render(target));
+                ({ index, ...view } = this.render(target, t));
                 await btn.update(view);
             } catch (error) {
                 logger.error("[QueuePaginator] Error al cambiar de página", error);

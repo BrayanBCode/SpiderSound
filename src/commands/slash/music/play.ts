@@ -1,5 +1,5 @@
 import logger from "../../../core/client/logger.js"
-import { es } from "../../../i18n/index.js";
+import { en, es, esLocales } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js"
 import { PlaybackStrategy } from "../../../core/strategy/PlaybackStrategy.js"
 
@@ -11,7 +11,7 @@ const play = new Play()
 
 export default new SlashCommand()
     .setName("play")
-    .setDescription(es.commands.play)
+    .setDescription(en.commands.play).setDescriptionLocalizations(esLocales(es.commands.play))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
@@ -34,7 +34,7 @@ export default new SlashCommand()
     )
     .addStringOption(
         o => o
-            .setName("busqueda")
-            .setDescription(es.commands.search)
+            .setName("search").setNameLocalizations(esLocales(es.names.search))
+            .setDescription(en.commands.search).setDescriptionLocalizations(esLocales(es.commands.search))
             .setAutocomplete(true)
             .setRequired(true))

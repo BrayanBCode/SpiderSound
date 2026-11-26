@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, MessageFlags } from "discord.js"
-import { es, textsFor, type Texts } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor, type Texts } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js"
 import { BClient } from "../../../core/client/BClient.js"
 import logger from "../../../core/client/logger.js"
@@ -35,8 +35,8 @@ async function play(client: BClient, inter: ChatInputCommandInteraction<"cached"
     const favorites = await client.db.getFavorites(inter.user.id)
     if (!favorites.length) return replyEmbed({ interaction: inter, embed: noFavorites(t), ephemeral: true })
 
-    const amount = inter.options.getInteger("cantidad") ?? MAX_LOAD
-    const mix = inter.options.getBoolean("mezclar") ?? false
+    const amount = inter.options.getInteger("amount") ?? MAX_LOAD
+    const mix = inter.options.getBoolean("shuffle") ?? false
     const selected = (mix ? shuffle(favorites) : favorites).slice(0, amount)
 
     // Buscar cada enlace puede tardar más de los 3 s que da Discord
@@ -77,14 +77,14 @@ async function view(client: BClient, inter: ChatInputCommandInteraction<"cached"
 }
 
 export default new SlashCommand()
-    .setName("favoritos")
-    .setDescription(es.commands.favorites)
+    .setName("favorites").setNameLocalizations(esLocales(es.names.favorites))
+    .setDescription(en.commands.favorites).setDescriptionLocalizations(esLocales(es.commands.favorites))
     .setCategory("Music")
     .setExecute(async (client, inter) => {
         try {
             const sub = inter.options.getSubcommand()
             if (sub === "play") await play(client, inter)
-            else if (sub === "agregar") await add(client, inter)
+            else if (sub === "add") await add(client, inter)
             else await view(client, inter)
         } catch (err) {
             logger.error(`[/favoritos] Error no controlado en el comando:`, err)
@@ -99,22 +99,22 @@ export default new SlashCommand()
     })
     .addSubcommand(sub => sub
         .setName("play")
-        .setDescription(es.commands.favoritesPlay)
+        .setDescription(en.commands.favoritesPlay).setDescriptionLocalizations(esLocales(es.commands.favoritesPlay))
         .addIntegerOption(o => o
-            .setName("cantidad")
-            .setDescription(es.commands.favoritesAmount(MAX_LOAD))
+            .setName("amount").setNameLocalizations(esLocales(es.names.amount))
+            .setDescription(en.commands.favoritesAmount(MAX_LOAD)).setDescriptionLocalizations(esLocales(es.commands.favoritesAmount(MAX_LOAD)))
             .setMinValue(1)
             .setMaxValue(MAX_LOAD))
         .addBooleanOption(o => o
-            .setName("mezclar")
-            .setDescription(es.commands.favoritesMix)))
+            .setName("shuffle").setNameLocalizations(esLocales(es.names.shuffle))
+            .setDescription(en.commands.favoritesMix).setDescriptionLocalizations(esLocales(es.commands.favoritesMix))))
     .addSubcommand(sub => sub
-        .setName("agregar")
-        .setDescription(es.commands.favoritesAdd)
+        .setName("add").setNameLocalizations(esLocales(es.names.add))
+        .setDescription(en.commands.favoritesAdd).setDescriptionLocalizations(esLocales(es.commands.favoritesAdd))
         .addStringOption(o => o
-            .setName("busqueda")
-            .setDescription(es.commands.savedSearch)
+            .setName("search").setNameLocalizations(esLocales(es.names.search))
+            .setDescription(en.commands.savedSearch).setDescriptionLocalizations(esLocales(es.commands.savedSearch))
             .setAutocomplete(true)))
     .addSubcommand(sub => sub
-        .setName("ver")
-        .setDescription(es.commands.favoritesView))
+        .setName("view").setNameLocalizations(esLocales(es.names.view))
+        .setDescription(en.commands.favoritesView).setDescriptionLocalizations(esLocales(es.commands.favoritesView)))

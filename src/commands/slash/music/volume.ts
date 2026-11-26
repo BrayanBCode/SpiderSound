@@ -1,5 +1,5 @@
 import { MessageFlags, PermissionFlagsBits } from "discord.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 import { requireListener } from "../../../core/music/player.js";
@@ -8,13 +8,13 @@ import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("volume")
-    .setDescription(es.commands.volume)
+    .setDescription(en.commands.volume).setDescriptionLocalizations(esLocales(es.commands.volume))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
             const t = await textsFor(client, inter.guildId);
-            const level = inter.options.getInteger("nivel");
-            const asDefault = inter.options.getBoolean("predeterminado") ?? false;
+            const level = inter.options.getInteger("level");
+            const asDefault = inter.options.getBoolean("default") ?? false;
             const saved = await client.db.getGuildVolume(inter.guildId);
 
             // Sin nivel: solo informa (efímero, no molesta al resto)
@@ -66,12 +66,12 @@ export default new SlashCommand()
         }
     )
     .addIntegerOption(o => o
-        .setName("nivel")
-        .setDescription(es.commands.volumeLevel)
+        .setName("level").setNameLocalizations(esLocales(es.names.level))
+        .setDescription(en.commands.volumeLevel).setDescriptionLocalizations(esLocales(es.commands.volumeLevel))
         .setMinValue(1)
         .setMaxValue(100)
         .setRequired(false))
     .addBooleanOption(o => o
-        .setName("predeterminado")
-        .setDescription(es.commands.volumeDefault)
+        .setName("default").setNameLocalizations(esLocales(es.names.default))
+        .setDescription(en.commands.volumeDefault).setDescriptionLocalizations(esLocales(es.commands.volumeDefault))
         .setRequired(false))

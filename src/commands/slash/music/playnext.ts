@@ -1,5 +1,5 @@
 import { Player, Track } from "moonlink.js";
-import { es } from "../../../i18n/index.js";
+import { en, es, esLocales } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import { PlaybackStrategy } from "../../../core/strategy/PlaybackStrategy.js";
 import logger from "../../../core/client/logger.js";
@@ -22,7 +22,7 @@ const playNext = new PlayNext()
 
 export default new SlashCommand()
     .setName("playnext")
-    .setDescription(es.commands.playnext)
+    .setDescription(en.commands.playnext).setDescriptionLocalizations(esLocales(es.commands.playnext))
     .setCategory("Music")
     .setExecute(async (client, inter) => {
         try {
@@ -40,8 +40,8 @@ export default new SlashCommand()
     })
     .addStringOption(
         o => o
-            .setName("busqueda")
-            .setDescription(es.commands.search)
+            .setName("search").setNameLocalizations(esLocales(es.names.search))
+            .setDescription(en.commands.search).setDescriptionLocalizations(esLocales(es.commands.search))
             .setAutocomplete(true)
             .setRequired(true))
 

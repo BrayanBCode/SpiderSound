@@ -1,12 +1,12 @@
 import { QueuePaginator } from "../../../core/classes/music/QueuePaginator.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
 import { MessageFlags } from "discord.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 
 export default new SlashCommand()
     .setName("queue")
-    .setDescription(es.commands.queue)
+    .setDescription(en.commands.queue).setDescriptionLocalizations(esLocales(es.commands.queue))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {

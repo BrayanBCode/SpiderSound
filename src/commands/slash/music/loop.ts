@@ -1,5 +1,5 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 import { requireListener } from "../../../core/music/player.js";
 import { loopMessage, nextLoopMode } from "../../../core/music/timing.js";
@@ -7,7 +7,7 @@ import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("loop")
-    .setDescription(es.commands.loop)
+    .setDescription(en.commands.loop).setDescriptionLocalizations(esLocales(es.commands.loop))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
@@ -15,7 +15,7 @@ export default new SlashCommand()
             const player = await requireListener(client, inter);
             if (!player) return;
 
-            const mode = (inter.options.getString("modo") as "off" | "track" | "queue" | null) ?? nextLoopMode(player.loop);
+            const mode = (inter.options.getString("mode") as "off" | "track" | "queue" | null) ?? nextLoopMode(player.loop);
             player.setLoop(mode);
             logger.info(`[/loop] ${inter.user.username} puso el loop en ${mode} en ${inter.guild.name}`);
 
@@ -23,11 +23,11 @@ export default new SlashCommand()
         }
     )
     .addStringOption(o => o
-        .setName("modo")
-        .setDescription(es.commands.loopMode)
+        .setName("mode").setNameLocalizations(esLocales(es.names.mode))
+        .setDescription(en.commands.loopMode).setDescriptionLocalizations(esLocales(es.commands.loopMode))
         .setRequired(false)
         .addChoices(
-            { name: es.loop.choices.off, value: "off" },
-            { name: es.loop.choices.track, value: "track" },
-            { name: es.loop.choices.queue, value: "queue" },
+            { name: en.loop.choices.off, name_localizations: esLocales(es.loop.choices.off), value: "off" },
+            { name: en.loop.choices.track, name_localizations: esLocales(es.loop.choices.track), value: "track" },
+            { name: en.loop.choices.queue, name_localizations: esLocales(es.loop.choices.queue), value: "queue" },
         ))

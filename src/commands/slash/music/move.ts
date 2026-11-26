@@ -1,12 +1,12 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { deleteAfterTimer, EmptyEmbed, replyEmbed } from "../../../utils/messages.js";
 import { getRequesterInfo, requireListener, respondQueuePositions, trackActionEmbed } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("move")
-    .setDescription(es.commands.move)
+    .setDescription(en.commands.move).setDescriptionLocalizations(esLocales(es.commands.move))
     .setCategory("Music")
     .setExecute(
         async (client, inter) => {
@@ -15,8 +15,8 @@ export default new SlashCommand()
             if (!player) return;
 
             // Posiciones desde 1, como en /queue
-            const from = inter.options.getNumber("desde", true);
-            const to = inter.options.getNumber("hasta", true);
+            const from = inter.options.getNumber("from", true);
+            const to = inter.options.getNumber("to", true);
             const track = player.queue.get(from - 1);
             const size = player.queue.size;
 
@@ -38,5 +38,5 @@ export default new SlashCommand()
         }
     )
     .setAutoComplete((client, inter) => respondQueuePositions(client, inter))
-    .addNumberOption(o => o.setName("desde").setDescription(es.commands.moveFrom).setAutocomplete(true).setRequired(true))
-    .addNumberOption(o => o.setName("hasta").setDescription(es.commands.moveTo).setAutocomplete(true).setRequired(true))
+    .addNumberOption(o => o.setName("from").setNameLocalizations(esLocales(es.names.from)).setDescription(en.commands.moveFrom).setDescriptionLocalizations(esLocales(es.commands.moveFrom)).setAutocomplete(true).setRequired(true))
+    .addNumberOption(o => o.setName("to").setNameLocalizations(esLocales(es.names.to)).setDescription(en.commands.moveTo).setDescriptionLocalizations(esLocales(es.commands.moveTo)).setAutocomplete(true).setRequired(true))

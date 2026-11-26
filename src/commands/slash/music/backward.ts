@@ -1,12 +1,12 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 import { requireListener, seekRelative } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("backward")
-    .setDescription(es.commands.backward)
+    .setDescription(en.commands.backward).setDescriptionLocalizations(esLocales(es.commands.backward))
     .setCategory("Music")
 
     .setExecute(
@@ -40,8 +40,8 @@ export default new SlashCommand()
 
     .addIntegerOption(option =>
         option
-            .setName("seconds")
-            .setDescription(es.commands.backwardSeconds)
+            .setName("seconds").setNameLocalizations(esLocales(es.names.seconds))
+            .setDescription(en.commands.backwardSeconds).setDescriptionLocalizations(esLocales(es.commands.backwardSeconds))
             .setMinValue(1)
             .setMaxValue(600)
             .setRequired(false)

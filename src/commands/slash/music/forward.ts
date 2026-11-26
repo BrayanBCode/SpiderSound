@@ -1,12 +1,12 @@
 import { SlashCommand } from "../../../core/classes/SlashCommand.js";
-import { es, textsFor } from "../../../i18n/index.js";
+import { en, es, esLocales, textsFor } from "../../../i18n/index.js";
 import { EmptyEmbed } from "../../../utils/messages.js";
 import { requireListener, seekRelative } from "../../../core/music/player.js";
 import logger from "../../../core/client/logger.js";
 
 export default new SlashCommand()
     .setName("forward")
-    .setDescription(es.commands.forward)
+    .setDescription(en.commands.forward).setDescriptionLocalizations(esLocales(es.commands.forward))
     .setCategory("Music")
 
     .setExecute(
@@ -42,8 +42,8 @@ export default new SlashCommand()
 
     .addIntegerOption(option =>
         option
-            .setName("seconds")
-            .setDescription(es.commands.forwardSeconds)
+            .setName("seconds").setNameLocalizations(esLocales(es.names.seconds))
+            .setDescription(en.commands.forwardSeconds).setDescriptionLocalizations(esLocales(es.commands.forwardSeconds))
             .setMinValue(1)
             .setMaxValue(600)
             .setRequired(false)
